@@ -1,0 +1,493 @@
+import { apiClient as api } from '@/api';
+import type {
+  Property,
+  PropertyFormPayload,
+  AssignAgentPayload,
+  OperationType,
+  InventoryReportResponse,
+} from '@/types/property';
+import type { OperationData } from '@/types/operation';
+
+export interface DocumentResponse {
+  id: string;
+  documentType: string;
+  originalFileName: string;
+  objectKey: string;
+  publicUrl: string;
+  fileSize: number;
+  mimeType: string;
+  uploadedAt: string;
+  uploadedBy: string;
+  uploadedByName: string;
+  status: 'PENDING' | 'ACTIVE' | 'EXPIRED' | 'REJECTED';
+  accessPolicy: string[];
+  validUntil?: string;
+  temporaryDownloadUrl?: string;
+  expiresInSeconds: number;
+}
+
+export interface GenerateUploadUrlRequest {
+  propertyId: string;
+  documentType: string;
+  fileName: string;
+  fileSize: number;
+  mimeType?: string;
+}
+
+export interface ImageResponse {
+  id: string;
+  originalFileName: string;
+  objectKey: string;
+  publicUrl: string;
+  fileSize: number;
+  mimeType: string;
+  width?: number;
+  height?: number;
+  isPrimary: boolean;
+  displayOrder: number;
+  uploadedAt: string;
+  uploadedBy: string;
+  uploadedByName: string;
+  status: string;
+  accessPolicy: string[];
+  temporaryDownloadUrl?: string;
+  expiresInSeconds: number;
+}
+
+export interface GenerateImageUploadUrlRequest {
+  fileName: string;
+  fileSize?: number;
+  mimeType?: string;
+}
+
+export interface ImageUploadPolicyResponse {
+  url: string;
+  objectKey: string;
+  formData: Record<string, string>;
+  expiresInSeconds: number;
+}
+
+export interface ConfirmImageUploadRequest {
+  objectKey: string;
+  originalFileName?: string;
+  fileSize?: number;
+  mimeType?: string;
+  isPrimary?: boolean;
+}
+
+export interface SendPropertyPdfEmailPayload {
+  destinationEmail: string;
+  message?: string;
+}
+
+export const propertyService = {
+  async getProperties(filters?: {
+    title?: string;
+    type?: string;
+    zone?: string;
+    operationType?: string;
+    status?: string;
+    agentId?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    minM2?: number;
+    maxM2?: number;
+    page?: number;
+    pageSize?: number;
+    sortBy?: string;
+    sortOrder?: string;
+  }) {
+    try {
+      const response = await api.get('/properties', { params: filters });
+      return response.data; // Return the whole ApiResponse object
+    } catch (error) {
+      console.error('Error fetching properties:', error);
+      throw error;
+    }
+  },
+
+  async getPropertiesByAgent(agentId: string) {
+    const response = await api.get(`/properties/agent/${agentId}`);
+    return response.data.data;
+  },
+
+  async getPropertiesByOwner(ownerId: string) {
+    const response = await api.get(`/properties/owner/${ownerId}`);
+    return response.data.data;
+  },
+
+  async getPropertyById(id: string): Promise<Property> {
+    const response = await api.get(`/properties/${id}`);
+    return response.data.data;
+  },
+
+  async createProperty(payload: PropertyFormPayload) {
+    const response = await api.post('/properties', payload);
+    return response.data.data;
+  },
+
+  async updatePrice(propertyId: string, newPrice: number) {
+    const response = await api.patch(`/properties/${propertyId}/price`, {
+      newPrice,
+    });
+    return response.data.data;
+  },
+
+  async assignAgent(propertyId: string, payload: AssignAgentPayload) {
+    const response = await api.patch(
+      `/properties/${propertyId}/assign-agent`,
+      payload
+    );
+    return response.data.data;
+  },
+
+  async assignOwner(propertyId: string, payload: { ownerId: string }) {
+    const response = await api.patch(
+      `/properties/${propertyId}/assign-owner`,
+      payload
+    );
+    return response.data.data;
+  },
+
+  async updateOperationType(propertyId: string, operationType: OperationType) {
+    const response = await api.patch(
+      `/properties/${propertyId}/operation-type`,
+      {
+        operationType,
+      }
+    );
+    return response.data.data;
+  },
+
+  async deleteProperty(propertyId: string): Promise<void> {
+    await api.delete(`/properties/${propertyId}`);
+  },
+
+  async generateImageUploadUrl(
+    propertyId: string,
+    file: File
+  ): Promise<{ uploadUrl: string; publicUrl: string; objectKey: string }> {
+    const response = await api.post(
+      `/properties/${propertyId}/images/upload-url`,
+      {
+        fileName: file.name,
+        fileSize: file.size,
+        mimeType: file.type,
+      }
+    );
+    return response.data.data;
+  },
+
+  async generateImageUploadPolicy(
+    propertyId: string,
+    file: File
+  ): Promise<ImageUploadPolicyResponse> {
+    const response = await api.post(
+      `/properties/${propertyId}/images/upload-policy`,
+      {
+        fileName: file.name,
+        fileSize: file.size,
+        mimeType: file.type,
+      }
+    );
+    return response.data.data;
+  },
+
+  async confirmImageUpload(
+    propertyId: string,
+    payload: ConfirmImageUploadRequest
+  ): Promise<Property> {
+    const response = await api.post(
+      `/properties/${propertyId}/images/confirm`,
+      payload
+    );
+    return response.data.data;
+  },
+
+  async getPropertyImages(propertyId: string): Promise<ImageResponse[]> {
+    const response = await api.get(`/properties/${propertyId}/images`);
+    return response.data.data;
+  },
+
+  async deleteImage(propertyId: string, imageId: string): Promise<void> {
+    await api.delete(`/properties/${propertyId}/images/${imageId}`);
+  },
+
+  async reorderImages(
+    propertyId: string,
+    orderedImageIds: string[]
+  ): Promise<ImageResponse[]> {
+    const response = await api.post(
+      `/properties/${propertyId}/images/reorder`,
+      orderedImageIds
+    );
+    return response.data.data;
+  },
+
+  async setPrimaryImage(
+    propertyId: string,
+    imageId: string
+  ): Promise<ImageResponse> {
+    const response = await api.put(
+      `/properties/${propertyId}/images/${imageId}/primary`
+    );
+    return response.data.data;
+  },
+
+  async generateDocumentUploadUrl(request: GenerateUploadUrlRequest): Promise<{
+    uploadUrl: string;
+    objectKey: string;
+    publicUrl: string;
+    expiresInSeconds: string;
+  }> {
+    const response = await api.post('/documents/upload-url', request);
+    return response.data.data;
+  },
+
+  async updateStatus(id: string, status: string): Promise<Property> {
+    const response = await api.patch(`/properties/${id}/status`, {
+      status,
+    });
+    return response.data.data;
+  },
+
+  async getStatusHistory(id: string): Promise<Record<string, unknown>[]> {
+    const response = await api.get(`/properties/${id}/status-history`);
+    return response.data.data;
+  },
+
+  async confirmDocumentUpload(
+    propertyId: string,
+    documentType: string,
+    objectKey: string,
+    originalFileName: string,
+    fileSize?: number,
+    mimeType?: string
+  ): Promise<DocumentResponse> {
+    const response = await api.post('/documents/confirm', {
+      propertyId,
+      documentType,
+      objectKey,
+      originalFileName,
+      fileSize,
+      mimeType,
+    });
+    return response.data.data;
+  },
+
+  async getPropertyDocuments(propertyId: string): Promise<DocumentResponse[]> {
+    const response = await api.get(`/documents/property/${propertyId}`);
+    return response.data.data;
+  },
+
+  async updateDocumentPermissions(
+    documentId: string,
+    accessPolicy: string[]
+  ): Promise<DocumentResponse> {
+    const response = await api.patch(`/documents/${documentId}/permissions`, {
+      documentId,
+      accessPolicy,
+    });
+    return response.data.data;
+  },
+
+  async refreshDownloadUrl(
+    documentId: string
+  ): Promise<{ temporaryDownloadUrl: string; expiresInSeconds: string }> {
+    const response = await api.post(`/documents/${documentId}/refresh-url`);
+    return response.data.data;
+  },
+
+  async deleteDocument(documentId: string): Promise<void> {
+    await api.delete(`/documents/${documentId}`);
+  },
+
+  async updateProperty(
+    propertyId: string,
+    payload: Partial<PropertyFormPayload>
+  ) {
+    const response = await api.put(`/properties/${propertyId}`, payload);
+    return response.data.data;
+  },
+
+  async updatePropertyAsAgent(
+    propertyId: string,
+    payload: Partial<PropertyFormPayload>
+  ) {
+    const response = await api.patch(
+      `/properties/${propertyId}/agent-update`,
+      payload
+    );
+    return response.data.data;
+  },
+
+  async uploadExclusivityContract(
+    propertyId: string,
+    file: File
+  ): Promise<DocumentResponse> {
+    const { uploadUrl, objectKey } = await this.generateDocumentUploadUrl({
+      propertyId,
+      documentType: 'EXCLUSIVITY_CONTRACT',
+      fileName: file.name,
+      fileSize: file.size,
+      mimeType: file.type,
+    });
+
+    const uploadResponse = await fetch(uploadUrl, {
+      method: 'PUT',
+      body: file,
+      headers: { 'Content-Type': file.type },
+    });
+
+    if (!uploadResponse.ok) {
+      throw new Error(
+        `Error al subir el archivo: ${uploadResponse.statusText}`
+      );
+    }
+
+    return await this.confirmDocumentUpload(
+      propertyId,
+      'EXCLUSIVITY_CONTRACT',
+      objectKey,
+      file.name,
+      file.size,
+      file.type
+    );
+  },
+
+  async updateLocation(
+    propertyId: string,
+    latitude: number,
+    longitude: number
+  ) {
+    const response = await api.patch(`/properties/${propertyId}/location`, {
+      latitude,
+      longitude,
+    });
+    return response.data.data;
+  },
+
+  async reincorporateProperty(id: string): Promise<Property> {
+    const response = await api.post(`/properties/${id}/reincorporate`);
+    return response.data.data;
+  },
+
+  async withdrawProperty(
+    id: string,
+    payload: { motivoRetiro: string; detalleRetiro?: string | null }
+  ): Promise<Property> {
+    const response = await api.post(`/properties/${id}/retirar`, payload);
+    return response.data.data;
+  },
+
+  async getOperationByPropertyId(
+    propertyId: string
+  ): Promise<OperationData | null> {
+    try {
+      const response = await api.get('/operations');
+      const operations = (response.data.data || []) as OperationData[];
+      return (
+        operations.find((operation) => operation.propertyId === propertyId) ||
+        null
+      );
+    } catch (error) {
+      console.warn(`No operation found for property ${propertyId}`, error);
+      return null;
+    }
+  },
+
+  async getSuggestedProperties(buscadorId: string): Promise<Property[]> {
+    const response = await api.get(`/properties/filtrar`, {
+      params: { buscador_id: buscadorId },
+    });
+    return response.data.data;
+  },
+
+  async getInventoryReport(
+    status?: string,
+    operationType?: string
+  ): Promise<InventoryReportResponse> {
+    const response = await api.get('/properties/reporte-gerencial', {
+      params: { status, operationType },
+    });
+    return response.data.data;
+  },
+
+  async downloadPropertyPdf(propertyId: string): Promise<void> {
+    const response = await api.post(
+      `/properties/${propertyId}/generate-pdf`,
+      {},
+      { responseType: 'blob' }
+    );
+
+    const blob = response.data as Blob;
+    const contentType = String(
+      response.headers['content-type'] || blob.type || ''
+    );
+
+    if (
+      contentType.includes('application/json') ||
+      contentType.includes('text/json') ||
+      blob.type.includes('json')
+    ) {
+      const text = await blob.text();
+      try {
+        const json = JSON.parse(text) as { message?: string };
+        throw {
+          isApiError: true,
+          message: json.message || 'PDF generation failed',
+          response,
+        };
+      } catch (parseError) {
+        if (
+          parseError &&
+          typeof parseError === 'object' &&
+          'isApiError' in parseError
+        ) {
+          throw parseError;
+        }
+        throw new Error(text || 'PDF generation failed');
+      }
+    }
+
+    if (!contentType.includes('pdf') && !blob.type.includes('pdf')) {
+      throw new Error('Unexpected response format when generating PDF');
+    }
+
+    if (blob.size === 0) {
+      throw new Error('Received an empty PDF file');
+    }
+
+    const pdfBlob = new Blob([blob], { type: 'application/pdf' });
+    const url = window.URL.createObjectURL(pdfBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `ficha_propiedad_${propertyId}.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  },
+
+  async sendPropertyPdfEmail(
+    propertyId: string,
+    payload: SendPropertyPdfEmailPayload
+  ): Promise<string> {
+    const response = await api.post(
+      `/properties/${propertyId}/send-pdf`,
+      {
+        destinationEmail: payload.destinationEmail.trim(),
+        message: payload.message?.trim() ?? '',
+      },
+      { timeout: 120_000 }
+    );
+    const body = response.data as {
+      success?: boolean;
+      message?: string;
+    };
+    if (body?.message) return body.message;
+    return 'Property sheet email sent successfully';
+  },
+};
+
+export { propertyService as default };

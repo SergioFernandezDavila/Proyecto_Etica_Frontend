@@ -1,0 +1,673 @@
+<template>
+  <div class="app-page">
+    <div class="max-w-5xl mx-auto px-4 py-5">
+      <!-- Back button and Actions -->
+      <div class="flex justify-between items-center mb-4 flex-wrap gap-3">
+        <FwbButton
+          tag="router-link"
+          to="/dashboard/operations"
+          color="light"
+          size="xs"
+          class="px-2.5! py-1! text-xs dark:bg-gray-800 dark:border-gray-700"
+        >
+          <template #prefix>
+            <IconLucideArrowLeft class="w-3 h-3" />
+          </template>
+          {{ t('operations.backToList') }}
+        </FwbButton>
+
+        <div v-if="operation" class="flex gap-2 flex-wrap">
+          <template v-if="canManage && operation.status !== 'CANCELLED'">
+            <!-- Change Status -->
+            <!-- <FwbButton
+              color="light"
+              size="xs"
+              class="px-2.5! py-1! text-xs font-bold uppercase tracking-tight dark:bg-gray-700 dark:border-gray-600"
+              @click="openStatusModal"
+              :disabled="cancelling || updatingStatus"
+            >
+              <template #prefix>
+                <IconLucideRefreshCw class="w-3 h-3" />
+              </template>
+              {{ t('operations.changeOperationStatus') }}
+            </FwbButton> -->
+
+            <FwbButton
+              color="red"
+              size="xs"
+              class="px-2.5! py-1! text-xs font-bold uppercase tracking-tight"
+              @click="triggerCancel('ONLY')"
+              :disabled="cancelling"
+              outline
+            >
+              <template #prefix>
+                <IconLucideBan class="w-3 h-3" />
+              </template>
+              {{
+                cancelling
+                  ? t('common.processing')
+                  : t('operations.cancelOperation')
+              }}
+            </FwbButton>
+
+            <FwbButton
+              color="red"
+              size="xs"
+              class="px-2.5! py-1! text-xs font-bold uppercase tracking-tight"
+              @click="triggerCancel('RECREATE')"
+              :disabled="cancelling"
+            >
+              <template #prefix>
+                <IconLucidePlusCircle class="w-3 h-3" />
+              </template>
+              {{
+                cancelling
+                  ? t('common.processing')
+                  : t('operations.cancelAndRecreate')
+              }}
+            </FwbButton>
+          </template>
+        </div>
+      </div>
+
+      <!-- Loading -->
+      <div v-if="loadingOperation" class="flex justify-center py-12">
+        <fwb-spinner size="8" />
+      </div>
+
+      <!-- Error -->
+      <FwbAlert
+        v-else-if="operationError"
+        type="danger"
+        dismissible
+        class="mb-4 text-sm"
+      >
+        {{ operationError }}
+      </FwbAlert>
+
+      <!-- Main content -->
+      <template v-else-if="operation">
+        <!-- Header card -->
+        <div class="app-card p-4 mb-4">
+          <div class="flex flex-wrap items-center gap-2 mb-2">
+            <FwbBadge type="default" size="xs">{{
+              t('operations.operationBadge')
+            }}</FwbBadge>
+            <FwbBadge :type="statusBadgeType" size="xs">
+              <div class="flex items-center gap-1">
+                <div
+                  :class="['w-1.5 h-1.5 rounded-full', statusDotClass]"
+                ></div>
+                {{ t('status.' + operation.status) }}
+              </div>
+            </FwbBadge>
+          </div>
+          <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <h1 class="text-lg font-bold text-primary">
+              {{ operation.propertyName }}
+            </h1>
+            <div class="text-xs text-gray-500 font-mono">
+              ID: {{ operationId }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Details + Price row -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <!-- Details card -->
+          <div class="md:col-span-2 app-card p-4">
+            <h3
+              class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-1"
+            >
+              <IconLucideInfo class="w-3.5 h-3.5" />
+              {{ t('common.details') }}
+            </h3>
+            <div class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+              <span class="text-secondary font-medium"
+                >{{ t('adminProperties.owner') }}:</span
+              >
+              <span class="text-primary font-semibold">
+                {{ operation.ownerName || '-' }}
+              </span>
+
+              <span class="text-secondary font-medium"
+                >{{ t('operations.client') }}:</span
+              >
+              <span class="text-primary font-semibold">
+                {{ operation.clientName || '-' }}
+              </span>
+
+              <span class="text-secondary font-medium"
+                >{{ t('adminProperties.advisor') }}:</span
+              >
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-semibold text-primary">
+                  {{ operation.agentName || '-' }}
+                </span>
+              </div>
+
+              <span class="text-secondary font-medium">
+                {{ t('adminProperties.closingDate') }}:
+              </span>
+              <span class="text-primary font-semibold">
+                {{ formatDateLong(operation.closureDate) }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Price card -->
+          <div class="app-card p-4 flex flex-col justify-center text-center">
+            <p
+              class="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide"
+            >
+              {{ t('adminProperties.finalPrice') }}
+            </p>
+            <p class="text-2xl font-bold text-primary mt-1">
+              {{ formatCurrency(operation.finalPrice, operation.currency) }}
+            </p>
+            <p class="text-xs text-gray-500 mt-1">
+              {{ t('common.includingTaxes') }}
+            </p>
+          </div>
+        </div>
+
+        <!-- Property Info & Documents row -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <!-- Property Basic Info & Images -->
+          <div class="app-card p-4">
+            <h3
+              class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-1"
+            >
+              <IconLucideBuilding class="w-3.5 h-3.5" />
+              {{ t('adminProperties.property') }}
+            </h3>
+            <div class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+              <span class="text-secondary font-medium">
+                {{ t('adminProperties.propertyType') }}:
+              </span>
+              <span class="text-primary font-semibold">
+                {{
+                  operation.propertyType
+                    ? t('propertyTypes.' + operation.propertyType)
+                    : '-'
+                }}
+              </span>
+
+              <span class="text-secondary font-medium">
+                {{ t('adminProperties.operationType') }}:
+              </span>
+              <span class="text-primary font-semibold">
+                {{
+                  operation.operationType
+                    ? t('propertyOperations.' + operation.operationType)
+                    : '-'
+                }}
+              </span>
+            </div>
+
+            <!-- Property Images Gallery -->
+            <div class="mt-4">
+              <ImageGallery
+                v-if="propertyData?.id"
+                :property-id="propertyData.id"
+                :can-manage="canManage"
+              />
+            </div>
+          </div>
+
+          <!-- Property Documents -->
+          <div class="app-card p-4">
+            <h3
+              class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-1"
+            >
+              <IconLucideFileText class="w-3.5 h-3.5" />
+              {{ t('documentUpload.title') }}
+            </h3>
+            <div v-if="loadingProperty" class="flex justify-center py-4">
+              <fwb-spinner size="6" />
+            </div>
+            <div v-else-if="propertyDocuments.length" class="space-y-2">
+              <div
+                v-for="doc in propertyDocuments"
+                :key="doc.id"
+                class="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded text-xs"
+              >
+                <div class="flex items-center gap-2 overflow-hidden">
+                  <IconLucideFileText class="w-4 h-4 text-blue-500" />
+                  <span
+                    class="truncate dark:text-gray-200"
+                    :title="doc.originalFileName"
+                  >
+                    {{ doc.originalFileName }}
+                  </span>
+                </div>
+                <a
+                  :href="doc.temporaryDownloadUrl"
+                  target="_blank"
+                  class="text-blue-600 hover:underline font-bold"
+                  v-if="doc.temporaryDownloadUrl"
+                >
+                  {{ t('common.download') }}
+                </a>
+              </div>
+            </div>
+            <div v-else class="text-center py-4 text-xs text-gray-400 italic">
+              {{ t('documentUpload.noDocuments') }}
+            </div>
+            <div class="mt-4 flex justify-end">
+              <FwbButton
+                @click="
+                  $router.push({
+                    name: 'contract-versions',
+                    params: { operationId: operation.id },
+                  })
+                "
+                color="green"
+                class="text-xs font-medium uppercase cursor-pointer"
+              >
+                <template #prefix>
+                  <IconLucideFileText class="h-4 w-4" />
+                </template>
+                {{ t('operationContractVersions.viewContracts') }}
+              </FwbButton>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div v-if="operation.notes" class="app-card p-4 mb-4">
+          <div class="flex gap-2">
+            <IconLucideFileText class="w-4 h-4 text-gray-400 mt-0.5" />
+            <div>
+              <h3
+                class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1"
+              >
+                {{ t('adminProperties.notes') }}
+              </h3>
+              <p class="text-sm text-gray-700 dark:text-gray-300">
+                {{ operation.notes }}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Receipts -->
+        <OperationReceiptsSection
+          :operation-id="operationId"
+          :can-delete="canManage"
+        />
+      </template>
+    </div>
+
+    <FwbModal
+      v-if="showStatusHistory"
+      size="2xl"
+      @close="showStatusHistory = false"
+    >
+      <template #header>
+        <div class="flex items-center gap-2">
+          <IconLucideHistory class="w-5 h-5 text-blue-600" />
+          <h3 class="text-lg font-bold dark:text-white">
+            {{ t('propertyDetails.statusHistory') }}
+          </h3>
+        </div>
+      </template>
+      <template #body>
+        <div v-if="operation?.statusHistory?.length" class="space-y-2">
+          <div
+            v-for="(history, index) in [...operation.statusHistory].reverse()"
+            :key="index"
+            class="flex items-center justify-between gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg text-xs"
+          >
+            <div class="flex items-center gap-2 min-w-0">
+              <FwbBadge
+                v-if="history.oldStatus"
+                :type="statusBadgeTypeFor(history.oldStatus)"
+                size="xs"
+              >
+                {{ history.oldStatus }}
+              </FwbBadge>
+              <span v-else class="text-gray-400 font-medium">-</span>
+              <IconLucideArrowLeft
+                class="w-3 h-3 text-gray-300 rotate-180 shrink-0"
+              />
+              <FwbBadge :type="statusBadgeTypeFor(history.newStatus)" size="xs">
+                {{ history.newStatus }}
+              </FwbBadge>
+            </div>
+            <div class="text-right shrink-0">
+              <p class="text-gray-500 dark:text-gray-300">
+                {{ formatDateTime(history.changedAt) }}
+              </p>
+              <p class="text-gray-400">{{ history.changedBy }}</p>
+            </div>
+          </div>
+        </div>
+        <div v-else class="text-center py-8 text-xs text-gray-400 italic">
+          {{ t('propertyDetails.noStatusChanges') }}
+        </div>
+      </template>
+      <template #footer>
+        <div class="flex justify-end w-full">
+          <FwbButton
+            color="alternative"
+            size="sm"
+            @click="showStatusHistory = false"
+          >
+            {{ t('common.close') }}
+          </FwbButton>
+        </div>
+      </template>
+    </FwbModal>
+
+    <!-- Confirm Cancel Modal -->
+    <!-- Change Status Modal -->
+    <FwbModal v-if="showStatusModal" @close="showStatusModal = false">
+      <template #header>
+        <div class="flex items-center gap-2">
+          <IconLucideRefreshCw class="w-5 h-5 text-blue-600" />
+          <h3 class="text-base font-bold dark:text-white">
+            {{ t('operations.changeOperationStatus') }}
+          </h3>
+        </div>
+      </template>
+      <template #body>
+        <p class="text-sm text-secondary mb-4">
+          {{ t('operations.currentOperationStatus') }}:
+          <FwbBadge :type="statusBadgeType" size="xs" class="ml-1">
+            {{ t('status.' + operation!.status) }}
+          </FwbBadge>
+        </p>
+        <div class="grid grid-cols-1 gap-2">
+          <button
+            v-for="s in availableStatuses"
+            :key="s.value"
+            class="flex items-center gap-3 w-full px-4 py-3 rounded-lg border text-sm font-medium transition-colors text-left"
+            :class="[
+              selectedStatus === s.value
+                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                : 'border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200',
+            ]"
+            @click="selectedStatus = s.value"
+          >
+            <span :class="['w-2.5 h-2.5 rounded-full shrink-0', s.dot]"></span>
+            {{ t('status.' + s.value) }}
+          </button>
+        </div>
+      </template>
+      <template #footer>
+        <div class="flex justify-end gap-2 w-full">
+          <FwbButton
+            color="alternative"
+            size="sm"
+            @click="showStatusModal = false"
+          >
+            {{ t('common.cancel') }}
+          </FwbButton>
+          <FwbButton
+            color="blue"
+            size="sm"
+            :disabled="!selectedStatus || updatingStatus"
+            @click="executeStatusUpdate"
+          >
+            {{ updatingStatus ? t('common.processing') : t('common.confirm') }}
+          </FwbButton>
+        </div>
+      </template>
+    </FwbModal>
+
+    <ConfirmModal
+      :show="showConfirmCancel"
+      :title="t('common.areYouSure')"
+      :message="
+        cancelMode === 'ONLY'
+          ? t('operations.cancelWarning')
+          : t('operations.cancelAndRecreateWarning')
+      "
+      :confirm-text="t('operations.confirmCancel')"
+      type="danger"
+      :loading="cancelling"
+      @close="showConfirmCancel = false"
+      @confirm="handleCancelExecution"
+    />
+
+    <!-- Global Toast -->
+    <AppToast
+      :show="toast.show"
+      :message="toast.message"
+      :type="toast.type"
+      @close="toast.show = false"
+    />
+  </div>
+</template>
+
+<script setup lang="ts">
+import { useI18n } from 'vue-i18n';
+import IconLucideArrowLeft from '~icons/lucide/arrow-left';
+import IconLucideInfo from '~icons/lucide/info';
+import IconLucideBuilding from '~icons/lucide/building';
+import IconLucideFileText from '~icons/lucide/file-text';
+import IconLucideBan from '~icons/lucide/ban';
+import IconLucidePlusCircle from '~icons/lucide/plus-circle';
+import IconLucideHistory from '~icons/lucide/history';
+import IconLucideRefreshCw from '~icons/lucide/refresh-cw';
+import { ref, computed, onMounted, reactive } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import {
+  FwbBadge,
+  FwbAlert,
+  FwbButton,
+  FwbSpinner,
+  FwbModal,
+} from 'flowbite-vue';
+import OperationReceiptsSection from '@/components/operations/receipts/OperationReceiptsSection.vue';
+import { apiClient as api } from '@/api';
+import { handleApiError } from '@/api/errorHandler';
+import { getLocaleString } from '@/locales/i18n';
+import { propertyService } from '@/modules/properties';
+import { useAuthStore, type UserClaims } from '@/modules/auth';
+import type { Property } from '@/types/property';
+import type { DocumentResponse } from '@/modules/properties';
+import type { OperationData } from '@/types/operation';
+import ConfirmModal from '@/components/ui/ConfirmModal.vue';
+import AppToast from '@/components/ui/AppToast.vue';
+import ImageGallery from '@/components/properties/ImageGallery.vue';
+import { formatDateLong, formatDateTime } from '@/utils/dateTime';
+
+const { t } = useI18n();
+const route = useRoute();
+const router = useRouter();
+const authStore = useAuthStore();
+const operationId = route.params.id as string;
+
+const operation = ref<OperationData | null>(null);
+const propertyData = ref<Property | null>(null);
+const propertyDocuments = ref<DocumentResponse[]>([]);
+const loadingOperation = ref(false);
+const loadingProperty = ref(false);
+const operationError = ref<string | null>(null);
+const cancelling = ref(false);
+const updatingStatus = ref(false);
+
+// UI States
+const showConfirmCancel = ref(false);
+const showStatusHistory = ref(false);
+const showStatusModal = ref(false);
+const selectedStatus = ref<string | null>(null);
+const cancelMode = ref<'ONLY' | 'RECREATE'>('ONLY');
+const toast = reactive({
+  show: false,
+  message: '',
+  type: 'success' as 'success' | 'error' | 'info',
+});
+
+const currentUser = computed(() => authStore.user as UserClaims | null);
+
+const isAdmin = computed(() => {
+  return (
+    currentUser.value?.roles?.includes('ADMIN') ||
+    currentUser.value?.userType === 'ADMIN'
+  );
+});
+
+const isAssignedAgent = computed(() => {
+  return operation.value?.agentId === currentUser.value?.id;
+});
+
+const canManage = computed(() => {
+  return isAdmin.value || isAssignedAgent.value;
+});
+
+const loadOperation = async () => {
+  loadingOperation.value = true;
+  try {
+    const response = await api.get(`/operations/${route.params.id}`);
+    operation.value = response.data.data;
+
+    if (operation.value?.propertyId) {
+      loadPropertyData(operation.value.propertyId);
+    }
+  } catch {
+    operationError.value = t('reports.rankingLoadError');
+  } finally {
+    loadingOperation.value = false;
+  }
+};
+
+const loadPropertyData = async (propId: string) => {
+  loadingProperty.value = true;
+  try {
+    propertyData.value = await propertyService.getPropertyById(propId);
+    propertyDocuments.value =
+      await propertyService.getPropertyDocuments(propId);
+  } catch (err) {
+    console.error('Error loading property assets for operation:', err);
+  } finally {
+    loadingProperty.value = false;
+  }
+};
+
+onMounted(loadOperation);
+
+const triggerCancel = (mode: 'ONLY' | 'RECREATE') => {
+  cancelMode.value = mode;
+  showConfirmCancel.value = true;
+};
+
+const ALL_STATUSES = ['ACTIVE', 'PENDING', 'CLOSED'] as const;
+
+const availableStatuses = computed(() => {
+  const current = operation.value?.status?.toUpperCase() || '';
+  const dotMap: Record<string, string> = {
+    ACTIVE: 'bg-green-500',
+    PENDING: 'bg-yellow-500',
+    CLOSED: 'bg-gray-500',
+  };
+  return ALL_STATUSES.filter((s) => s !== current).map((s) => ({
+    value: s,
+    dot: dotMap[s],
+  }));
+});
+
+// const openStatusModal = () => {
+//   selectedStatus.value = null;
+//   showStatusModal.value = true;
+// };
+
+const executeStatusUpdate = async () => {
+  if (!selectedStatus.value) return;
+  updatingStatus.value = true;
+  try {
+    await api.patch(`/operations/${operationId}/status`, {
+      status: selectedStatus.value,
+    });
+    showStatusModal.value = false;
+    toast.message = t('operations.operationStatusUpdated');
+    toast.type = 'success';
+    toast.show = true;
+    await loadOperation();
+  } catch (err: unknown) {
+    toast.message = handleApiError(err).message;
+    toast.type = 'error';
+    toast.show = true;
+  } finally {
+    updatingStatus.value = false;
+  }
+};
+
+const handleCancelExecution = async () => {
+  cancelling.value = true;
+  try {
+    await api.patch(`/operations/${operationId}/status`, {
+      status: 'CANCELLED',
+    });
+
+    showConfirmCancel.value = false;
+
+    toast.message = t('operations.cancelledText');
+    toast.type = 'success';
+    toast.show = true;
+
+    if (cancelMode.value === 'RECREATE') {
+      const dashboardRoute = isAdmin.value
+        ? 'AdminProperties'
+        : 'AgentDashboard';
+
+      // Ensure we pass a plain object to state
+      const cloneData = propertyData.value
+        ? JSON.parse(JSON.stringify(propertyData.value))
+        : null;
+
+      setTimeout(() => {
+        router.push({
+          name: dashboardRoute,
+          state: { cloneProperty: cloneData },
+        });
+      }, 1000);
+    } else {
+      await loadOperation();
+    }
+  } catch (err: unknown) {
+    toast.message = handleApiError(err).message;
+    toast.type = 'error';
+    toast.show = true;
+    showConfirmCancel.value = false;
+  } finally {
+    cancelling.value = false;
+  }
+};
+
+const statusBadgeType = computed(() => {
+  const status = operation.value?.status?.toUpperCase() || '';
+  return statusBadgeTypeFor(status);
+});
+
+const statusBadgeTypeFor = (status?: string) => {
+  const map: Record<string, 'green' | 'dark' | 'yellow' | 'red'> = {
+    ACTIVE: 'green',
+    CLOSED: 'dark',
+    CANCELLED: 'red',
+    PENDING: 'yellow',
+  };
+  return map[status?.toUpperCase() || ''] || 'dark';
+};
+
+const statusDotClass = computed(() => {
+  const type = statusBadgeType.value;
+  const map: Record<string, string> = {
+    green: 'bg-green-500',
+    dark: 'bg-gray-500',
+    yellow: 'bg-yellow-500',
+    red: 'bg-red-500',
+  };
+  return map[type] || 'bg-gray-500';
+});
+
+function formatCurrency(amount: number, currency: string) {
+  return new Intl.NumberFormat(getLocaleString(), {
+    style: 'currency',
+    currency: currency || 'USD',
+    minimumFractionDigits: 2,
+  }).format(amount);
+}
+</script>

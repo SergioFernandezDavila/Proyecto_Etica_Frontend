@@ -1,0 +1,152 @@
+<template>
+  <div class="app-page py-8 px-4">
+    <div class="max-w-6xl mx-auto space-y-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-bold text-primary">
+            {{ t('operations.title') }}
+          </h1>
+          <p class="text-secondary text-sm mt-1">
+            {{ t('operations.subtitle') }}
+          </p>
+        </div>
+      </div>
+
+      <div v-if="loading" class="text-center py-20">
+        <FwbSpinner size="6" />
+        <p class="mt-2 text-secondary">{{ t('operations.loading') }}</p>
+      </div>
+
+      <FwbAlert v-else-if="error" type="danger">
+        {{ error }}
+        <FwbButton @click="loadOperations" :link="true" class="ml-2">
+          {{ t('common.retry') }}
+        </FwbButton>
+      </FwbAlert>
+
+      <div
+        v-else-if="operations.length === 0"
+        class="app-card p-12 text-center"
+      >
+        <IconLucideClipboardList
+          class="w-16 h-16 mx-auto text-gray-400 dark:text-gray-600 mb-4"
+        />
+        <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-1">
+          {{ t('operations.emptyTitle') }}
+        </h3>
+        <p class="text-secondary text-sm">{{ t('operations.emptyText') }}</p>
+      </div>
+
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div
+          v-for="op in operations"
+          :key="op.id"
+          class="app-card overflow-hidden hover:shadow-lg transition-all group cursor-pointer"
+          @click="$router.push(`/dashboard/operations/${op.id}`)"
+        >
+          <div class="p-5 pb-3 border-b border-gray-50 dark:border-gray-700">
+            <div class="flex items-center justify-between">
+              <FwbBadge type="default" size="sm">
+                {{ op.operationType || t('operations.standardBadge') }}
+              </FwbBadge>
+              <span class="text-xs text-gray-400 dark:text-gray-500">
+                ID: {{ op.id.slice(0, 8) }}
+              </span>
+            </div>
+            <h3
+              class="text-lg font-bold text-primary mt-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
+            >
+              {{ op.propertyName || t('operations.noName') }}
+            </h3>
+            <p class="text-sm text-secondary mt-0.5">
+              {{ op.clientName || t('operations.noClient') }}
+            </p>
+          </div>
+
+          <div class="p-5 space-y-3">
+            <div class="flex justify-between text-sm">
+              <span class="text-secondary">{{ t('operations.agent') }}</span>
+              <span class="font-medium text-gray-700 dark:text-gray-300">
+                {{ op.agentName || t('common.notSpecified') }}
+              </span>
+            </div>
+            <div class="flex justify-between text-sm">
+              <span class="text-secondary">{{ t('operations.date') }}</span>
+              <span class="font-medium text-gray-700 dark:text-gray-300">
+                {{ formatDate(op.createdAt) }}
+              </span>
+            </div>
+            <div class="flex justify-between text-sm">
+              <span class="text-secondary">{{ t('common.status') }}</span>
+              <FwbBadge :type="badgeType(op.status)" size="sm">
+                {{ op.status || t('status.pending') }}
+              </FwbBadge>
+            </div>
+          </div>
+
+          <div
+            class="px-5 py-3 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-100 dark:border-gray-700"
+          >
+            <span
+              class="text-xs text-blue-600 dark:text-blue-400 font-medium flex items-center gap-1"
+            >
+              {{ t('common.viewDetails') }}
+              <IconLucideChevronRight class="w-3 h-3" />
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { FwbSpinner, FwbAlert, FwbButton, FwbBadge } from 'flowbite-vue';
+import IconLucideClipboardList from '~icons/lucide/clipboard-list';
+import IconLucideChevronRight from '~icons/lucide/chevron-right';
+import { ref, onMounted } from 'vue';
+import { apiClient as api } from '@/api';
+import { useI18n } from 'vue-i18n';
+import { formatDate } from '@/utils/dateTime';
+
+const { t } = useI18n();
+
+interface Operation {
+  id: string;
+  operationType?: string;
+  propertyName?: string;
+  clientName?: string;
+  agentName?: string;
+  createdAt?: string;
+  status?: string;
+}
+
+const operations = ref<Operation[]>([]);
+const loading = ref(false);
+const error = ref('');
+
+const loadOperations = async () => {
+  loading.value = true;
+  error.value = '';
+  try {
+    const response = await api.get('/operations');
+    operations.value = response.data.data || [];
+  } catch {
+    error.value = t('operations.loadError');
+  } finally {
+    loading.value = false;
+  }
+};
+
+const badgeType = (status?: string) => {
+  const map: Record<string, 'green' | 'dark' | 'red' | 'yellow'> = {
+    ACTIVE: 'green',
+    CLOSED: 'dark',
+    CANCELLED: 'red',
+    PENDING: 'yellow',
+  };
+  return map[status || ''] || 'dark';
+};
+
+onMounted(loadOperations);
+</script>
