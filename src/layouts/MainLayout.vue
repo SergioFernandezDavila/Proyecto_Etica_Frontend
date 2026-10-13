@@ -49,6 +49,11 @@
               exact
             />
             <NavLink
+              to="/dashboard/admin/matrix"
+              :label="t('nav.matrix', 'Matriz de Permisos')"
+              :icon="IconLucideKey"
+            />
+            <NavLink
               to="/dashboard/admin/availability"
               :label="t('nav.agentAvailability', 'Disponibilidad')"
               :icon="IconLucideCalendar"
@@ -247,6 +252,7 @@ import IconLucideBarChart2 from '~icons/lucide/bar-chart-2';
 import IconLucideArrowLeftRight from '~icons/lucide/arrow-left-right';
 import IconLucideClipboardList from '~icons/lucide/clipboard-list';
 import IconLucideUsers from '~icons/lucide/users';
+import IconLucideKey from '~icons/lucide/key';
 import IconLucideBuilding2 from '~icons/lucide/building-2';
 import IconLucideShieldCheck from '~icons/lucide/shield-check';
 import IconLucideLayoutDashboard from '~icons/lucide/layout-dashboard';

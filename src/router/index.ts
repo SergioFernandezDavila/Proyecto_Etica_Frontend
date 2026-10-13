@@ -49,6 +49,12 @@ const routes = [
         meta: { role: 'ADMIN' },
       },
       {
+        path: 'admin/matrix',
+        name: 'RolePermissionsMatrix',
+        component: () => import('@/views/RolePermissionsMatrixView.vue'),
+        meta: { role: 'ADMIN' },
+      },
+      {
         path: 'admin/availability',
         name: 'AgentAvailability',
         component: () => import('@/views/AgentAvailabilityView.vue'),
