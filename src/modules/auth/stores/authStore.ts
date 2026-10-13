@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { authService } from '@/modules/auth/services';
-import { parseJwt } from '@/api';
+import { parseJwt, apiClient } from '@/api';
 
 export interface UserClaims {
   sub?: string;
@@ -27,14 +27,25 @@ export interface ChangePasswordPayload {
   newPassword: string;
 }
 
+export interface PermissionEntry {
+  resource: string;
+  action: string;
+  scope?: string;
+  accessType?: string;
+}
+
 export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(localStorage.getItem('access_token'));
   const user = ref<UserClaims | null>(null);
   const loading = ref(false);
   const error = ref('');
 
+  const permissions = ref<PermissionEntry[]>([]);
+  const permissionsLoaded = ref(false);
+
   if (token.value) {
     user.value = parseJwt(token.value) as UserClaims;
+    loadPermissions();
   }
 
   const isAuthenticated = computed(() => !!token.value);
@@ -45,6 +56,24 @@ export const useAuthStore = defineStore('auth', () => {
     () => localStorage.getItem('must_change_password') === 'true'
   );
 
+
+  async function loadPermissions() {
+    try {
+      const res = await apiClient.get('/roles/me/permissions');
+      permissions.value = res.data?.data ?? [];
+      permissionsLoaded.value = true;
+    } catch (err) {
+      console.error('Error loading permissions:', err);
+    }
+  }
+
+  function can(resource: string, action: string): boolean {
+    if (user.value?.roles?.includes('ADMIN')) return true;
+    if (!permissionsLoaded.value) return true;
+    return permissions.value.some(
+      (p) => p.resource === resource && p.action === action
+    );
+  }
   async function login(payload: LoginPayload) {
     loading.value = true;
     error.value = '';
@@ -54,6 +83,7 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.setItem('refresh_token', res.refreshToken);
       token.value = res.accessToken;
       user.value = parseJwt(res.accessToken) as UserClaims;
+            await loadPermissions();
 
       if (res.mustChangePassword) {
         localStorage.setItem('must_change_password', 'true');
@@ -79,6 +109,8 @@ export const useAuthStore = defineStore('auth', () => {
     await authService.logout();
     token.value = null;
     user.value = null;
+    permissions.value = [];
+    permissionsLoaded.value = false;
     localStorage.removeItem('must_change_password');
   }
 
@@ -123,5 +155,8 @@ export const useAuthStore = defineStore('auth', () => {
     changePassword,
     resendTemporaryPassword,
     clearError,
+    permissions,
+    can,
+    loadPermissions,
   };
 });
