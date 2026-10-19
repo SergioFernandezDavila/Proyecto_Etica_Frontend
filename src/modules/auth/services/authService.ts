@@ -34,6 +34,26 @@ export const authService = {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
   },
+
+  async verifyTwoFactorLogin(payload: { preAuthToken: string; code: string }) {
+    const response = await api.post('/auth/2fa/verify-login', payload);
+    return response.data.data;
+  },
+
+  async setupTwoFactor() {
+    const response = await api.post('/auth/2fa/setup');
+    return response.data.data;
+  },
+
+  async confirmTwoFactor(code: string) {
+    const response = await api.post('/auth/2fa/confirm', { code });
+    return response.data.data;
+  },
+
+  async disableTwoFactor(code: string) {
+    const response = await api.post('/auth/2fa/disable', { code });
+    return response.data.data;
+  },
 };
 
 export { authService as default };

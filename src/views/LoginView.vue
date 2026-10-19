@@ -11,7 +11,60 @@
       {{ errorMessage }}
     </div>
 
-    <login-form v-if="!showChangePassword" @submit="handleLogin" />
+    <!-- Step 2: 2FA Verification Card -->
+    <div
+      v-if="showTwoFactorStep && !showChangePassword"
+      class="w-full max-w-md p-8 bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-700/80 space-y-6"
+    >
+      <div class="text-center space-y-2">
+        <div class="w-14 h-14 bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 rounded-2xl flex items-center justify-center mx-auto shadow-sm">
+          <IconLucideShieldCheck class="w-7 h-7" />
+        </div>
+        <h2 class="text-xl font-bold text-gray-900 dark:text-white">
+          Verificación de Dos Factores
+        </h2>
+        <p class="text-xs text-gray-500 dark:text-gray-400">
+          Ingresa el código de 6 dígitos generado por tu aplicación móvil (Google Authenticator)
+        </p>
+      </div>
+
+      <form @submit.prevent="handleTwoFactorSubmit" class="space-y-4">
+        <div>
+          <input
+            v-model="twoFactorCode"
+            type="text"
+            maxlength="6"
+            placeholder="000000"
+            inputmode="numeric"
+            autofocus
+            autocomplete="one-time-code"
+            class="w-full text-center text-3xl font-mono tracking-widest font-bold py-3 px-4 rounded-2xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-750 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+          />
+        </div>
+
+        <fwb-button
+          type="submit"
+          class="w-full py-3 text-base font-medium"
+          gradient="blue"
+          :disabled="twoFactorCode.length !== 6 || twoFactorLoading"
+        >
+          {{ twoFactorLoading ? 'Verificando...' : 'Verificar e Iniciar Sesión' }}
+        </fwb-button>
+
+        <div class="text-center pt-2">
+          <button
+            type="button"
+            @click="cancelTwoFactor"
+            class="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors cursor-pointer"
+          >
+            ← Volver al inicio de sesión
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Step 1: Normal Login Form -->
+    <login-form v-else-if="!showChangePassword" @submit="handleLogin" />
 
     <fwb-modal v-if="showChangePassword" @close="handleCancelChange">
       <template #header>
@@ -65,6 +118,7 @@ import { toTypedSchema } from '@vee-validate/zod';
 import { useAuthStore, type UserClaims, authService } from '@/modules/auth';
 import LoginForm from '@/components/auth/LoginForm.vue';
 import ThemeToggle from '@/components/ThemeToggle.vue';
+import IconLucideShieldCheck from '~icons/lucide/shield-check';
 import {
   loginSchema,
   changePasswordSchema,
@@ -82,6 +136,13 @@ const { t } = useI18n();
 
 const showChangePassword = ref(false);
 const errorMessage = ref('');
+
+// 2FA state
+const showTwoFactorStep = ref(false);
+const preAuthToken = ref('');
+const twoFactorCode = ref('');
+const twoFactorLoading = ref(false);
+const pendingPassword = ref('');
 
 onMounted(() => {
   if (route.query.error === 'connection') {
@@ -106,7 +167,11 @@ const [currentPassword] = defineField('currentPassword');
 const [newPassword] = defineField('newPassword');
 const [confirmPassword] = defineField('confirmPassword');
 
-const handleLogin = async (payload: { email: string; password: string }) => {
+const handleLogin = async (payload: {
+  email: string;
+  password: string;
+  recaptchaToken: string;
+}) => {
   errorMessage.value = '';
 
   const parsed = loginSchema.safeParse(payload);
@@ -121,7 +186,18 @@ const handleLogin = async (payload: { email: string; password: string }) => {
   const values: LoginFormValues = parsed.data;
 
   try {
-    await login({ email: values.email, password: values.password });
+    const res = await login({
+      email: values.email,
+      password: values.password,
+      recaptchaToken: payload.recaptchaToken,
+    });
+
+    if (res?.requiresTwoFactor) {
+      preAuthToken.value = res.preAuthToken;
+      pendingPassword.value = values.password;
+      showTwoFactorStep.value = true;
+      return;
+    }
 
     if (localStorage.getItem('must_change_password') === 'true') {
       showChangePassword.value = true;
@@ -153,6 +229,46 @@ const handleLogin = async (payload: { email: string; password: string }) => {
     }, 5000);
   }
 };
+
+const handleTwoFactorSubmit = async () => {
+  if (twoFactorCode.value.length !== 6) return;
+  errorMessage.value = '';
+  twoFactorLoading.value = true;
+  try {
+    await authStore.verifyTwoFactorLogin({
+      preAuthToken: preAuthToken.value,
+      code: twoFactorCode.value,
+    });
+
+    if (localStorage.getItem('must_change_password') === 'true') {
+      showChangePassword.value = true;
+      setChangePasswordValues({
+        currentPassword: pendingPassword.value,
+        newPassword: '',
+        confirmPassword: '',
+      });
+    } else {
+      const redirectPath = (route.query.redirect as string) || '/dashboard';
+      router.push(redirectPath.startsWith('/') ? redirectPath : '/dashboard');
+    }
+  } catch (err: unknown) {
+    const appError = handleApiError(err);
+    errorMessage.value = appError.message || 'Código 2FA incorrecto';
+    setTimeout(() => {
+      errorMessage.value = '';
+    }, 5000);
+  } finally {
+    twoFactorLoading.value = false;
+  }
+};
+
+const cancelTwoFactor = () => {
+  showTwoFactorStep.value = false;
+  preAuthToken.value = '';
+  twoFactorCode.value = '';
+  pendingPassword.value = '';
+};
+
 
 const onPasswordSubmit = onChangePasswordSubmit(async (values) => {
   try {
