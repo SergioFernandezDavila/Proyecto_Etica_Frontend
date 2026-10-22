@@ -34,7 +34,8 @@
     "tabs": {
       "identity": "ID Documents",
       "properties": "Properties",
-      "profiles": "Profiles"
+      "profiles": "Profiles",
+      "accessControl": "Roles & Permissions"
     },
     "filters": {
       "user": "Responsible User",

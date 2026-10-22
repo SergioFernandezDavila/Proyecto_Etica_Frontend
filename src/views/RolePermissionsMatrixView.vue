@@ -18,7 +18,26 @@
         </div>
       </div>
 
-      <div class="flex items-center gap-3">
+      <div class="flex flex-wrap items-center gap-3">
+        <!-- New Role Button (ABM) -->
+        <button
+          @click="openCreateRoleModal"
+          class="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm transition-all focus:ring-4 focus:ring-emerald-300 dark:focus:ring-emerald-800 cursor-pointer"
+        >
+          <IconLucidePlus class="w-4 h-4" />
+          <span>Nuevo Rol</span>
+        </button>
+
+        <!-- Audit Center Link -->
+        <router-link
+          to="/dashboard/admin/audit?tab=access_control"
+          class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800 dark:hover:bg-purple-900/50 transition-colors"
+          title="Monitoreo de logs de auditoría de control de acceso"
+        >
+          <IconLucideHistory class="w-4 h-4" />
+          <span>Auditoría de Roles</span>
+        </router-link>
+
         <router-link
           to="/dashboard/admin/users"
           class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 transition-colors"
@@ -30,7 +49,7 @@
         <button
           @click="resetChanges"
           :disabled="!isDirty || saving"
-          class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           title="Deshacer cambios no guardados"
         >
           <IconLucideRotateCcw class="w-4 h-4" />
@@ -40,7 +59,7 @@
         <button
           @click="saveMatrix"
           :disabled="saving"
-          class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-all focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 disabled:opacity-60"
+          class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-all focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 disabled:opacity-60 cursor-pointer"
         >
           <IconLucideLoader v-if="saving" class="w-4 h-4 animate-spin" />
           <IconLucideSave v-else class="w-4 h-4" />
@@ -143,7 +162,7 @@
       </div>
       <button
         @click="toast.visible = false"
-        class="text-xs font-semibold hover:underline opacity-80"
+        class="text-xs font-semibold hover:underline opacity-80 cursor-pointer"
       >
         Cerrar
       </button>
@@ -171,14 +190,31 @@
             v-for="role in rolesList"
             :key="role.roleId"
             @click="selectedRoleCode = role.roleCode"
-            class="px-3 py-1.5 text-xs font-medium rounded-lg transition-colors whitespace-nowrap cursor-pointer"
+            class="px-3 py-1.5 text-xs font-medium rounded-lg transition-colors whitespace-nowrap cursor-pointer flex items-center gap-1.5"
             :class="[
               selectedRoleCode === role.roleCode
                 ? 'bg-blue-600 text-white shadow-xs'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600',
             ]"
           >
-            {{ role.roleName }} ({{ role.roleCode }})
+            <span>{{ role.roleName }} ({{ role.roleCode }})</span>
+            <span
+              v-if="role.roleType === 'SYSTEM'"
+              class="text-[10px] opacity-75"
+              title="Rol de Sistema protegido"
+            >
+              🔒
+            </span>
+          </button>
+
+          <!-- Quick Add Role Pill -->
+          <button
+            @click="openCreateRoleModal"
+            class="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800 transition-colors whitespace-nowrap cursor-pointer flex items-center gap-1"
+            title="Crear nuevo rol de seguridad"
+          >
+            <IconLucidePlus class="w-3.5 h-3.5" />
+            <span>Nuevo</span>
           </button>
         </div>
       </div>
@@ -188,7 +224,7 @@
         <span class="text-xs text-gray-500 dark:text-gray-400">Modo:</span>
         <button
           @click="viewMode = 'role'"
-          class="px-2.5 py-1 text-xs font-medium rounded-lg transition-colors"
+          class="px-2.5 py-1 text-xs font-medium rounded-lg transition-colors cursor-pointer"
           :class="[
             viewMode === 'role'
               ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
@@ -199,7 +235,7 @@
         </button>
         <button
           @click="viewMode = 'matrix'"
-          class="px-2.5 py-1 text-xs font-medium rounded-lg transition-colors"
+          class="px-2.5 py-1 text-xs font-medium rounded-lg transition-colors cursor-pointer"
           :class="[
             viewMode === 'matrix'
               ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
@@ -219,22 +255,31 @@
 
     <!-- MODE 1: Granular Role View (Selected Role) -->
     <div v-else-if="viewMode === 'role' && currentRole" class="space-y-4">
-      <!-- Role Info Banner -->
-      <div class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <!-- Role Info Banner with ABM Actions -->
+      <div class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-xs">
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-xl bg-blue-600/10 text-blue-600 dark:bg-blue-400/10 dark:text-blue-400 flex items-center justify-center font-bold">
             {{ currentRole.roleCode.charAt(0) }}
           </div>
           <div>
-            <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center gap-2">
               <h3 class="text-base font-bold text-gray-900 dark:text-white">
                 {{ currentRole.roleName }}
               </h3>
-              <span class="px-2 py-0.5 text-xs font-semibold rounded bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
-                Código: {{ currentRole.roleCode }}
+              <span class="px-2 py-0.5 text-xs font-semibold rounded bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 font-mono">
+                {{ currentRole.roleCode }}
               </span>
-              <span class="px-2 py-0.5 text-xs font-semibold rounded bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-                {{ currentRole.roleType }}
+              <span
+                class="px-2 py-0.5 text-xs font-semibold rounded"
+                :class="currentRole.roleType === 'SYSTEM' ? 'bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' : 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'"
+              >
+                {{ currentRole.roleType === 'SYSTEM' ? '🛡️ Rol de Sistema (Protegido)' : 'Personalizado' }}
+              </span>
+              <span
+                class="px-2 py-0.5 text-xs font-semibold rounded"
+                :class="currentRole.active ? 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300'"
+              >
+                {{ currentRole.active ? 'Activo' : 'Inactivo' }}
               </span>
             </div>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
@@ -243,36 +288,68 @@
           </div>
         </div>
 
-        <!-- Quick actions for this role -->
-        <div class="flex items-center gap-2">
+        <!-- ABM & Quick actions for this role -->
+        <div class="flex flex-wrap items-center gap-2">
+          <!-- Edit Role (ABM) -->
+          <button
+            @click="openEditRoleModal(currentRole)"
+            class="px-2.5 py-1 text-xs font-medium rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors inline-flex items-center gap-1 cursor-pointer"
+            title="Modificar nombre, descripción o estado del rol"
+          >
+            <IconLucideEdit class="w-3.5 h-3.5" />
+            <span>Editar Rol</span>
+          </button>
+
+          <!-- Delete Role (ABM) -->
+          <button
+            v-if="currentRole.roleType === 'CUSTOM'"
+            @click="confirmDeleteRole(currentRole)"
+            class="px-2.5 py-1 text-xs font-medium rounded-lg border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800 transition-colors inline-flex items-center gap-1 cursor-pointer"
+            title="Eliminar rol personalizado del sistema"
+          >
+            <IconLucideTrash2 class="w-3.5 h-3.5" />
+            <span>Eliminar Rol</span>
+          </button>
+
+          <span
+            v-else
+            class="text-[11px] text-gray-400 dark:text-gray-500 italic px-2 py-1 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-100 dark:border-gray-700"
+            title="Los roles del sistema son esenciales y están protegidos contra eliminación"
+          >
+            🔒 Rol protegido
+          </span>
+
+          <div class="h-4 w-px bg-gray-200 dark:bg-gray-700 mx-1 hidden lg:block"></div>
+
+          <!-- Quick Permissions Buttons -->
           <button
             @click="bulkSetAccessTypeForRole(currentRole.roleId, 'MAC')"
-            class="px-2.5 py-1 text-xs font-medium rounded bg-purple-50 text-purple-700 hover:bg-purple-100 dark:bg-purple-900/30 dark:text-purple-300 transition-colors"
+            class="px-2 py-1 text-xs font-medium rounded bg-purple-50 text-purple-700 hover:bg-purple-100 dark:bg-purple-900/30 dark:text-purple-300 transition-colors cursor-pointer"
           >
             Todos MAC
           </button>
           <button
             @click="bulkSetAccessTypeForRole(currentRole.roleId, 'RBAC')"
-            class="px-2.5 py-1 text-xs font-medium rounded bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 transition-colors"
+            class="px-2 py-1 text-xs font-medium rounded bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 transition-colors cursor-pointer"
           >
             Todos RBAC
           </button>
           <button
             @click="bulkSetAccessTypeForRole(currentRole.roleId, 'DAC')"
-            class="px-2.5 py-1 text-xs font-medium rounded bg-amber-50 text-amber-700 hover:bg-amber-100 dark:bg-amber-900/30 dark:text-amber-300 transition-colors"
+            class="px-2 py-1 text-xs font-medium rounded bg-amber-50 text-amber-700 hover:bg-amber-100 dark:bg-amber-900/30 dark:text-amber-300 transition-colors cursor-pointer"
           >
             Todos DAC
           </button>
           <button
             @click="grantAllForRole(currentRole.roleId)"
-            class="px-2.5 py-1 text-xs font-medium rounded bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-300 transition-colors"
+            class="px-2 py-1 text-xs font-medium rounded bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-300 transition-colors cursor-pointer"
           >
             Activar Todo
           </button>
         </div>
       </div>
 
-      <!-- Modules Table for Current Role -->
+      <!-- Modules Table for Current Role (Conceder y Quitar Permisos) -->
       <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-xs">
         <div class="overflow-x-auto">
           <table class="w-full text-left text-sm">
@@ -285,7 +362,7 @@
                   Tipo de Acceso (Teórico)
                 </th>
                 <th scope="col" class="py-3 px-4 font-semibold w-1/3 text-center">
-                  Casillas de Acceso (Operaciones)
+                  Casillas de Acceso (Conceder / Quitar)
                 </th>
                 <th scope="col" class="py-3 px-4 font-semibold text-right">
                   Acciones Rápidas
@@ -357,7 +434,7 @@
                         type="checkbox"
                         :checked="hasAction(currentRole.roleId, mod.code, act)"
                         @change="toggleAction(currentRole.roleId, mod.code, act)"
-                        class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600"
+                        class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600 cursor-pointer"
                       />
                       <span
                         class="font-medium"
@@ -379,7 +456,7 @@
                     <button
                       type="button"
                       @click="grantAllActions(currentRole.roleId, mod.code)"
-                      class="px-2 py-1 text-[11px] font-medium text-blue-600 hover:bg-blue-50 rounded dark:text-blue-400 dark:hover:bg-blue-950/40"
+                      class="px-2 py-1 text-[11px] font-medium text-blue-600 hover:bg-blue-50 rounded dark:text-blue-400 dark:hover:bg-blue-950/40 cursor-pointer"
                     >
                       Todos
                     </button>
@@ -387,7 +464,7 @@
                     <button
                       type="button"
                       @click="revokeAllActions(currentRole.roleId, mod.code)"
-                      class="px-2 py-1 text-[11px] font-medium text-red-600 hover:bg-red-50 rounded dark:text-red-400 dark:hover:bg-red-950/40"
+                      class="px-2 py-1 text-[11px] font-medium text-red-600 hover:bg-red-50 rounded dark:text-red-400 dark:hover:bg-red-950/40 cursor-pointer"
                     >
                       Ninguno
                     </button>
@@ -415,10 +492,13 @@
                 scope="col"
                 class="py-3 px-3 font-semibold text-center border-l border-gray-200 dark:border-gray-700 min-w-[220px]"
               >
-                <div class="font-bold text-gray-900 dark:text-white">
-                  {{ role.roleName }}
+                <div class="flex items-center justify-center gap-1">
+                  <span class="font-bold text-gray-900 dark:text-white">
+                    {{ role.roleName }}
+                  </span>
+                  <span v-if="role.roleType === 'SYSTEM'" class="text-[10px]" title="Rol de Sistema">🔒</span>
                 </div>
-                <div class="text-[10px] text-gray-500 font-normal">
+                <div class="text-[10px] text-gray-500 font-mono">
                   {{ role.roleCode }}
                 </div>
               </th>
@@ -492,11 +572,210 @@
         </table>
       </div>
     </div>
+
+    <!-- MODAL: Crear Rol (ABM) -->
+    <fwb-modal v-if="showCreateRoleModal" @close="showCreateRoleModal = false" size="md">
+      <template #header>
+        <div class="flex items-center gap-2.5">
+          <span class="p-2 rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+            <IconLucidePlus class="w-5 h-5" />
+          </span>
+          <h3 class="text-lg font-bold text-gray-900 dark:text-white">
+            Crear Nuevo Rol de Seguridad
+          </h3>
+        </div>
+      </template>
+
+      <template #body>
+        <form @submit.prevent="handleCreateRole" class="space-y-4">
+          <!-- Code -->
+          <div>
+            <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+              Código del Rol *
+            </label>
+            <input
+              v-model="createRoleForm.code"
+              type="text"
+              required
+              placeholder="Ej. AUDITOR, SUPERVISOR_ZONA..."
+              class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 p-2.5 uppercase font-mono"
+            />
+            <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
+              Identificador único del rol en mayúsculas sin espacios (ej. AUDITOR_GENERAL).
+            </p>
+          </div>
+
+          <!-- Name -->
+          <div>
+            <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+              Nombre Visible *
+            </label>
+            <input
+              v-model="createRoleForm.name"
+              type="text"
+              required
+              placeholder="Ej. Auditor de Cumplimiento"
+              class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 p-2.5"
+            />
+          </div>
+
+          <!-- Description -->
+          <div>
+            <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+              Descripción del Rol *
+            </label>
+            <textarea
+              v-model="createRoleForm.description"
+              required
+              rows="3"
+              placeholder="Descripción de responsabilidades y alcance funcional del rol..."
+              class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 p-2.5"
+            ></textarea>
+          </div>
+
+          <!-- Permissions Template -->
+          <div>
+            <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+              Plantilla de Permisos Iniciales
+            </label>
+            <select
+              v-model="createRoleForm.template"
+              class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 p-2.5"
+            >
+              <option value="EMPTY">Permisos vacíos (configurar en la matriz)</option>
+              <option value="AGENT">Clonar base de Agente Inmobiliario</option>
+              <option value="CLIENT">Clonar base de Cliente</option>
+            </select>
+            <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
+              Podrás afinar individualmente cada permiso en la matriz tras la creación.
+            </p>
+          </div>
+
+          <div class="flex justify-end gap-2 pt-2">
+            <fwb-button
+              type="button"
+              @click="showCreateRoleModal = false"
+              color="alternative"
+              size="sm"
+            >
+              Cancelar
+            </fwb-button>
+            <fwb-button
+              type="submit"
+              :disabled="creatingRole"
+              gradient="green"
+              size="sm"
+            >
+              <IconLucideLoader v-if="creatingRole" class="w-4 h-4 animate-spin mr-1.5" />
+              <span>{{ creatingRole ? 'Creando...' : 'Crear y Configurar' }}</span>
+            </fwb-button>
+          </div>
+        </form>
+      </template>
+    </fwb-modal>
+
+    <!-- MODAL: Editar Rol (ABM) -->
+    <fwb-modal v-if="showEditRoleModal" @close="showEditRoleModal = false" size="md">
+      <template #header>
+        <div class="flex items-center gap-2.5">
+          <span class="p-2 rounded-lg bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+            <IconLucideEdit class="w-5 h-5" />
+          </span>
+          <div>
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white">
+              Modificar Rol: {{ editRoleForm.code }}
+            </h3>
+            <span
+              v-if="editRoleForm.roleType === 'SYSTEM'"
+              class="text-[10px] text-purple-600 dark:text-purple-400 font-semibold"
+            >
+              Rol de Sistema (Código protegido)
+            </span>
+          </div>
+        </div>
+      </template>
+
+      <template #body>
+        <form @submit.prevent="handleUpdateRole" class="space-y-4">
+          <!-- Code (Readonly) -->
+          <div>
+            <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+              Código del Rol (No modificable)
+            </label>
+            <input
+              :value="editRoleForm.code"
+              disabled
+              class="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 text-sm rounded-lg p-2.5 font-mono cursor-not-allowed"
+            />
+          </div>
+
+          <!-- Name -->
+          <div>
+            <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+              Nombre Visible *
+            </label>
+            <input
+              v-model="editRoleForm.name"
+              type="text"
+              required
+              class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5"
+            />
+          </div>
+
+          <!-- Description -->
+          <div>
+            <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+              Descripción del Rol *
+            </label>
+            <textarea
+              v-model="editRoleForm.description"
+              required
+              rows="3"
+              class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5"
+            ></textarea>
+          </div>
+
+          <!-- Active Checkbox -->
+          <div class="flex items-center gap-2 pt-1">
+            <input
+              id="edit-role-active"
+              v-model="editRoleForm.active"
+              type="checkbox"
+              class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600 cursor-pointer"
+            />
+            <label for="edit-role-active" class="text-sm font-medium text-gray-900 dark:text-white cursor-pointer">
+              Rol Activo en el Sistema
+            </label>
+          </div>
+
+          <div class="flex justify-end gap-2 pt-2">
+            <fwb-button
+              type="button"
+              @click="showEditRoleModal = false"
+              color="alternative"
+              size="sm"
+            >
+              Cancelar
+            </fwb-button>
+            <fwb-button
+              type="submit"
+              :disabled="updatingRole"
+              gradient="blue"
+              size="sm"
+            >
+              <IconLucideLoader v-if="updatingRole" class="w-4 h-4 animate-spin mr-1.5" />
+              <span>{{ updatingRole ? 'Guardando...' : 'Guardar Cambios' }}</span>
+            </fwb-button>
+          </div>
+        </form>
+      </template>
+    </fwb-modal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
+import Swal from 'sweetalert2';
 import {
   accessControlService,
   type RoleMatrixData,
@@ -504,7 +783,10 @@ import {
   type RoleMatrixRow,
   type ModuleInfo,
   type RoleMatrixBatchUpdatePayload,
+  type PermissionEntry,
 } from '@/services/accessControlService';
+import { handleApiError } from '@/api/errorHandler';
+import { FwbModal, FwbButton } from 'flowbite-vue';
 
 // Icons
 import IconLucideShieldCheck from '~icons/lucide/shield-check';
@@ -517,6 +799,10 @@ import IconLucideCheckCircle from '~icons/lucide/check-circle';
 import IconLucideAlertCircle from '~icons/lucide/alert-circle';
 import IconLucideBookOpen from '~icons/lucide/book-open';
 import IconLucideLayers from '~icons/lucide/layers';
+import IconLucidePlus from '~icons/lucide/plus';
+import IconLucideEdit from '~icons/lucide/edit';
+import IconLucideTrash2 from '~icons/lucide/trash-2';
+import IconLucideHistory from '~icons/lucide/history';
 
 const loading = ref(true);
 const saving = ref(false);
@@ -528,6 +814,27 @@ const matrixData = ref<RoleMatrixData | null>(null);
 const originalState = ref<string>('');
 
 const selectedRoleCode = ref('ADMIN');
+
+// ABM Modal States
+const showCreateRoleModal = ref(false);
+const creatingRole = ref(false);
+const createRoleForm = ref({
+  code: '',
+  name: '',
+  description: '',
+  template: 'EMPTY',
+});
+
+const showEditRoleModal = ref(false);
+const updatingRole = ref(false);
+const editRoleForm = ref({
+  id: '',
+  code: '',
+  name: '',
+  description: '',
+  active: true,
+  roleType: 'CUSTOM',
+});
 
 const toast = ref<{ visible: boolean; message: string; type: 'success' | 'error' }>({
   visible: false,
@@ -608,8 +915,7 @@ const loadMatrix = async () => {
     originalState.value = JSON.stringify(data);
     isDirty.value = false;
   } catch (error) {
-    console.error('Error fetching role matrix, generating local fallback:', error);
-    // Build resilient default state if backend is still spinning up
+    console.error('Error fetching role matrix, generating fallback:', error);
     matrixData.value = createDefaultMatrixState();
     originalState.value = JSON.stringify(matrixData.value);
     isDirty.value = false;
@@ -656,30 +962,6 @@ const createDefaultMatrixState = (): RoleMatrixData => {
           visits: { resource: 'visits', accessType: 'RBAC', actions: ['create', 'read', 'update'] },
           users: { resource: 'users', accessType: 'RBAC', actions: ['read', 'create'] },
           operations: { resource: 'operations', accessType: 'RBAC', actions: ['read', 'create'] },
-        },
-      },
-      {
-        roleId: 'rol_owner',
-        roleCode: 'OWNER',
-        roleName: 'Propietario',
-        roleDescription: 'Consulta de inmuebles y contratos propios (RBAC)',
-        roleType: 'SYSTEM',
-        active: true,
-        moduleAccess: {
-          properties: { resource: 'properties', accessType: 'RBAC', actions: ['read', 'update'] },
-          operations: { resource: 'operations', accessType: 'RBAC', actions: ['read'] },
-        },
-      },
-      {
-        roleId: 'rol_interested_client',
-        roleCode: 'INTERESTED_CLIENT',
-        roleName: 'Cliente Interesado',
-        roleDescription: 'Búsqueda de inmuebles y solicitud de visitas (RBAC)',
-        roleType: 'SYSTEM',
-        active: true,
-        moduleAccess: {
-          properties: { resource: 'properties', accessType: 'RBAC', actions: ['read'] },
-          visits: { resource: 'visits', accessType: 'RBAC', actions: ['create'] },
         },
       },
     ],
@@ -890,6 +1172,148 @@ const saveMatrix = async () => {
     showToast('Error al guardar la matriz de permisos. Por favor intente nuevamente.', 'error');
   } finally {
     saving.value = false;
+  }
+};
+
+// --- ABM METHODS ---
+
+const openCreateRoleModal = () => {
+  createRoleForm.value = {
+    code: '',
+    name: '',
+    description: '',
+    template: 'EMPTY',
+  };
+  showCreateRoleModal.value = true;
+};
+
+const handleCreateRole = async () => {
+  const code = createRoleForm.value.code.trim().toUpperCase();
+  const name = createRoleForm.value.name.trim();
+  const description = createRoleForm.value.description.trim();
+
+  if (!code || !name) {
+    showToast('El código y el nombre del rol son obligatorios', 'error');
+    return;
+  }
+
+  creatingRole.value = true;
+  try {
+    const initialPermissions: PermissionEntry[] = [];
+
+    if (createRoleForm.value.template === 'AGENT') {
+      const agentRole = rolesList.value.find((r) => r.roleCode === 'AGENT');
+      if (agentRole && agentRole.moduleAccess) {
+        Object.entries(agentRole.moduleAccess).forEach(([resource, acc]) => {
+          (acc.actions || []).forEach((act) => {
+            initialPermissions.push({
+              resource,
+              action: act,
+              scope: 'ANY',
+              accessType: acc.accessType || 'RBAC',
+            });
+          });
+        });
+      }
+    } else if (createRoleForm.value.template === 'CLIENT') {
+      initialPermissions.push(
+        { resource: 'properties', action: 'read', scope: 'ANY', accessType: 'RBAC' },
+        { resource: 'visits', action: 'create', scope: 'OWN', accessType: 'RBAC' }
+      );
+    }
+
+    const created = await accessControlService.createRole({
+      code,
+      name,
+      description,
+      permissions: initialPermissions,
+    });
+
+    showCreateRoleModal.value = false;
+    showToast(`Rol "${created.name}" (${created.code}) creado exitosamente`, 'success');
+
+    // Reload matrix to include the newly created role
+    await loadMatrix();
+    selectedRoleCode.value = created.code;
+  } catch (error) {
+    handleApiError(error);
+  } finally {
+    creatingRole.value = false;
+  }
+};
+
+const openEditRoleModal = (role: RoleMatrixRow) => {
+  editRoleForm.value = {
+    id: role.roleId,
+    code: role.roleCode,
+    name: role.roleName,
+    description: role.roleDescription,
+    active: role.active !== false,
+    roleType: role.roleType,
+  };
+  showEditRoleModal.value = true;
+};
+
+const handleUpdateRole = async () => {
+  const name = editRoleForm.value.name.trim();
+  const description = editRoleForm.value.description.trim();
+
+  if (!name) {
+    showToast('El nombre del rol es obligatorio', 'error');
+    return;
+  }
+
+  updatingRole.value = true;
+  try {
+    await accessControlService.updateRole(editRoleForm.value.id, {
+      name,
+      description,
+      active: editRoleForm.value.active,
+    });
+
+    showEditRoleModal.value = false;
+    showToast(`Rol "${name}" actualizado exitosamente`, 'success');
+
+    await loadMatrix();
+  } catch (error) {
+    handleApiError(error);
+  } finally {
+    updatingRole.value = false;
+  }
+};
+
+const confirmDeleteRole = async (role: RoleMatrixRow) => {
+  if (role.roleType === 'SYSTEM') {
+    Swal.fire({
+      icon: 'error',
+      title: 'Acción No Permitida',
+      text: 'Los roles reservados del sistema (ADMIN, AGENT, OWNER, INTERESTED_CLIENT) están protegidos y no pueden eliminarse.',
+      confirmButtonColor: '#2563eb',
+    });
+    return;
+  }
+
+  const result = await Swal.fire({
+    title: '¿Eliminar Rol?',
+    html: `¿Estás seguro de que deseas eliminar permanentemente el rol <strong>${role.roleName}</strong> (<code>${role.roleCode}</code>)?<br/><br/><span style="font-size: 0.85em; color: #ef4444;">Esta acción removerá el rol y todas sus asignaciones en el sistema.</span>`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#ef4444',
+    cancelButtonColor: '#6b7280',
+    confirmButtonText: 'Sí, eliminar',
+    cancelButtonText: 'Cancelar',
+    focusCancel: true,
+  });
+
+  if (result.isConfirmed) {
+    try {
+      await accessControlService.deleteRole(role.roleId);
+      showToast(`Rol "${role.roleName}" eliminado exitosamente`, 'success');
+      await loadMatrix();
+      selectedRoleCode.value = 'ADMIN';
+    } catch (error) {
+      handleApiError(error);
+    }
   }
 };
 
