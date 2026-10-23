@@ -24,10 +24,10 @@ export const changePasswordSchema = z
     currentPassword: z.string().min(1, t('validation.currentPasswordRequired')),
     newPassword: z
       .string()
-      .min(8, t('validation.passwordMin8'))
+      .min(12, 'La contraseña debe tener al menos 12 caracteres')
       .regex(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-        t('validation.passwordComplexity')
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()-_=+[\]{}|;:,.<>?])/,
+        'La contraseña debe contener al menos una mayúscula, una minúscula, un número y un carácter especial'
       ),
     confirmPassword: z.string().min(1, t('validation.confirmPasswordRequired')),
   })

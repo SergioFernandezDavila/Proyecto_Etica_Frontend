@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-6">
     <div class="app-card p-4">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <SearchableSelect
           v-model="filters.userId"
           :items="userOptions"
@@ -22,13 +22,35 @@
             class="w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-primary text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
           >
             <option value="">{{ t('audit.actions.all') }}</option>
-            <option value="USER_LOGIN">LOGIN</option>
-            <option value="USER_LOGOUT">LOGOUT</option>
-            <option value="USER_CREATE">CREATE</option>
-            <option value="USER_UPDATE">UPDATE</option>
-            <option value="USER_DEACTIVATE">DEACTIVATE</option>
-            <option value="USER_REACTIVATE">REACTIVATE</option>
-            <option value="PASSWORD_CHANGE">PASSWORD CHANGE</option>
+            <option value="USER_LOGIN_SUCCESS">LOGIN EXITOSO</option>
+            <option value="USER_LOGIN_FAILED">LOGIN FALLIDO</option>
+            <option value="USER_LOCKOUT">BLOQUEO TEMPORAL (LOCKOUT)</option>
+            <option value="MFA_CHALLENGE">SOLICITUD MFA</option>
+            <option value="MFA_FAILED">MFA FALLIDO</option>
+            <option value="USER_BLOCK">BLOQUEO MANUAL</option>
+            <option value="USER_UNBLOCK">DESBLOQUEO MANUAL</option>
+            <option value="PASSWORD_RESET">RESETEO ADMIN</option>
+            <option value="PASSWORD_CHANGE">CAMBIO DE CONTRASEÑA</option>
+            <option value="USER_CREATE">CREAR USUARIO</option>
+            <option value="USER_UPDATE">EDITAR USUARIO</option>
+            <option value="USER_DEACTIVATE">DESACTIVAR</option>
+            <option value="USER_REACTIVATE">REACTIVAR</option>
+          </select>
+        </div>
+
+        <div class="flex flex-col">
+          <label
+            class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1"
+          >
+            Estado
+          </label>
+          <select
+            v-model="filters.status"
+            class="w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-primary text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
+          >
+            <option value="">Todos los Estados</option>
+            <option value="SUCCESS">SUCCESS (Exitoso)</option>
+            <option value="FAILURE">FAILURE (Fallido)</option>
           </select>
         </div>
 
@@ -82,6 +104,7 @@
           <fwb-table-head-cell>{{
             t('audit.table.action')
           }}</fwb-table-head-cell>
+          <fwb-table-head-cell>Estado</fwb-table-head-cell>
           <fwb-table-head-cell>{{
             t('audit.table.details')
           }}</fwb-table-head-cell>
@@ -114,6 +137,14 @@
                 class="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-tighter shadow-sm"
               >
                 {{ getActionLabel(log.action) }}
+              </span>
+            </fwb-table-cell>
+            <fwb-table-cell>
+              <span
+                :class="log.status === 'FAILURE' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'"
+                class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider"
+              >
+                {{ log.status || 'SUCCESS' }}
               </span>
             </fwb-table-cell>
             <fwb-table-cell>
@@ -209,6 +240,27 @@
                   {{ getUserName(selectedLog.performedBy) }}
                 </p>
               </div>
+            </div>
+            <div class="space-y-1">
+              <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                Estado
+              </span>
+              <div class="mt-1">
+                <span
+                  :class="selectedLog.status === 'FAILURE' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'"
+                  class="px-2.5 py-1 rounded-lg text-xs font-black uppercase tracking-wider"
+                >
+                  {{ selectedLog.status || 'SUCCESS' }}
+                </span>
+              </div>
+            </div>
+            <div class="space-y-1">
+              <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                Dirección IP
+              </span>
+              <p class="text-sm font-mono text-gray-700 dark:text-gray-300 mt-1">
+                {{ selectedLog.ipAddress || 'No registrada' }}
+              </p>
             </div>
           </div>
 
@@ -347,6 +399,7 @@ const loadingUsers = ref(false);
 const filters = ref({
   userId: '',
   action: '',
+  status: '',
   from: '',
   to: '',
 });
@@ -366,6 +419,16 @@ const getUserName = (id?: string) => {
 };
 
 const getActionBadgeClass = (action: string) => {
+  if (action === 'USER_LOCKOUT' || action === 'MFA_FAILED' || action === 'USER_BLOCK')
+    return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+  if (action === 'USER_LOGIN_FAILED')
+    return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400';
+  if (action === 'USER_LOGIN_SUCCESS' || action === 'USER_UNBLOCK')
+    return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+  if (action === 'MFA_CHALLENGE')
+    return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400';
+  if (action === 'PASSWORD_RESET')
+    return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400';
   if (action.includes('CREATE'))
     return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
   if (action.includes('UPDATE'))
@@ -383,6 +446,14 @@ const getActionBadgeClass = (action: string) => {
 
 const getActionLabel = (action: string) => {
   const map: Record<string, string> = {
+    USER_LOGIN_SUCCESS: 'LOGIN EXITOSO',
+    USER_LOGIN_FAILED: 'LOGIN FALLIDO',
+    USER_LOCKOUT: 'BLOQUEO TEMPORAL (LOCKOUT)',
+    MFA_CHALLENGE: 'SOLICITUD MFA',
+    MFA_FAILED: 'MFA FALLIDO',
+    USER_BLOCK: 'USUARIO BLOQUEADO',
+    USER_UNBLOCK: 'USUARIO DESBLOQUEADO',
+    PASSWORD_RESET: 'RESETEO ADMIN',
     USER_LOGIN: 'LOGIN',
     USER_LOGOUT: 'LOGOUT',
     USER_CREATE: t('auditLogs.actions.creation'),
@@ -418,7 +489,7 @@ const resetAndLoad = () => {
 };
 
 const clearFilters = () => {
-  filters.value = { userId: '', action: '', from: '', to: '' };
+  filters.value = { userId: '', action: '', status: '', from: '', to: '' };
   resetAndLoad();
 };
 

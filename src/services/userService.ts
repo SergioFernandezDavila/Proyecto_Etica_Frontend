@@ -91,6 +91,33 @@ export const userService = {
     return res.data.data;
   },
 
+  async blockUser(id: string, reason?: string): Promise<User> {
+    const res = await api.put<ApiResponse<User>>(
+      `/users/${id}/block`,
+      null,
+      { params: { reason } }
+    );
+    return res.data.data;
+  },
+
+  async unblockUser(id: string): Promise<User> {
+    const res = await api.put<ApiResponse<User>>(`/users/${id}/unblock`);
+    return res.data.data;
+  },
+
+  async adminResetPassword(id: string): Promise<void> {
+    await api.post<ApiResponse<void>>(`/users/${id}/reset-password`);
+  },
+
+  async setMfaEnabled(id: string, enabled: boolean): Promise<User> {
+    const res = await api.put<ApiResponse<User>>(
+      `/users/${id}/mfa`,
+      null,
+      { params: { enabled } }
+    );
+    return res.data.data;
+  },
+
   async deleteUser(id: string): Promise<void> {
     await api.delete(`/users/${id}`);
   },

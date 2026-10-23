@@ -97,6 +97,9 @@
       @delete="handleDeactivate"
       @resend="handleResend"
       @reactivate="handleReactivate"
+      @block="handleBlock"
+      @unblock="handleUnblock"
+      @adminResetPassword="handleAdminResetPassword"
       @viewDetails="openDetailsModal"
     />
 
@@ -361,6 +364,43 @@
         </div>
       </template>
     </fwb-modal>
+
+    <!-- Modal Bloquear Usuario -->
+    <fwb-modal v-if="showBlockModal" @close="cancelBlock">
+      <template #header>
+        <div class="text-lg font-bold text-red-600 dark:text-red-400">
+          Bloquear Usuario
+        </div>
+      </template>
+      <template #body>
+        <div class="space-y-4">
+          <p class="text-sm text-gray-700 dark:text-gray-300">
+            ¿Está seguro de que desea bloquear el acceso al usuario
+            <strong>{{ userToBlock?.fullName || userToBlock?.email }}</strong>?
+            El usuario no podrá iniciar sesión en el sistema mientras permanezca bloqueado.
+          </p>
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300 mb-1">
+              Motivo del bloqueo
+            </label>
+            <input
+              v-model="blockReason"
+              type="text"
+              class="w-full p-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-red-500 focus:border-red-500"
+              placeholder="Indique el motivo del bloqueo..."
+            />
+          </div>
+          <div class="flex justify-end gap-2 pt-2">
+            <fwb-button @click="cancelBlock" color="alternative">
+              {{ t('common.cancel') }}
+            </fwb-button>
+            <fwb-button @click="confirmBlock" color="red">
+              Confirmar Bloqueo
+            </fwb-button>
+          </div>
+        </div>
+      </template>
+    </fwb-modal>
   </div>
 </template>
 
@@ -412,6 +452,9 @@ const {
   deactivate,
   reactivate,
   resendPassword,
+  block,
+  unblock,
+  adminResetPassword,
   update,
   fetchUserProfile,
 } = useUsers();
@@ -436,6 +479,9 @@ const showDeactivateModal = ref(false);
 const showRemoveModal = ref(false);
 const userToDeactivate = ref<UserRecord | null>(null);
 const userToRemove = ref<UserRecord | null>(null);
+const showBlockModal = ref(false);
+const userToBlock = ref<UserRecord | null>(null);
+const blockReason = ref('Bloqueado por administrador');
 
 const showToast = (message: string, type: 'success' | 'error' = 'success') => {
   toast.value = { visible: true, message, type };
@@ -628,6 +674,58 @@ const handleResend = async (user: UserRecord) => {
     showToast(t('users.view.resendSuccess', { email: user.email }));
   } catch (e) {
     showToast(handleApiError(e).message, 'error');
+  }
+};
+
+const handleBlock = (user: UserRecord) => {
+  userToBlock.value = user;
+  blockReason.value = 'Bloqueado por administrador';
+  showBlockModal.value = true;
+};
+
+const confirmBlock = async () => {
+  if (!userToBlock.value) return;
+  try {
+    await block(userToBlock.value.id as string, blockReason.value);
+    showToast(`Usuario ${userToBlock.value.fullName || userToBlock.value.email} bloqueado correctamente`);
+  } catch (e) {
+    showToast(handleApiError(e).message, 'error');
+  } finally {
+    showBlockModal.value = false;
+    userToBlock.value = null;
+  }
+};
+
+const cancelBlock = () => {
+  showBlockModal.value = false;
+  userToBlock.value = null;
+};
+
+const handleUnblock = async (user: UserRecord) => {
+  try {
+    await unblock(user.id as string);
+    showToast(`Usuario ${user.fullName || user.email} desbloqueado exitosamente`);
+  } catch (e) {
+    showToast(handleApiError(e).message, 'error');
+  }
+};
+
+const handleAdminResetPassword = async (user: UserRecord) => {
+  if (
+    confirm(
+      `¿Está seguro de restablecer administrativamente la contraseña para ${
+        user.fullName || user.email
+      }? Se generará una contraseña temporal robusta y se enviará a su correo.`
+    )
+  ) {
+    try {
+      await adminResetPassword(user.id as string);
+      showToast(
+        `Contraseña restablecida exitosamente para ${user.email}. Se han enviado las nuevas credenciales por correo.`
+      );
+    } catch (e) {
+      showToast(handleApiError(e).message, 'error');
+    }
   }
 };
 

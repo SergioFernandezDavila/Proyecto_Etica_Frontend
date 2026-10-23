@@ -19,6 +19,10 @@ export interface BaseAuditLog {
 export interface IdentityAuditLog extends BaseAuditLog {
   userEmail?: string;
   performedBy?: string;
+  performedByEmail?: string;
+  performedByName?: string;
+  ipAddress?: string;
+  status?: string; // "SUCCESS" | "FAILURE"
 }
 
 export interface PropertyAuditLog extends BaseAuditLog {
@@ -52,6 +56,7 @@ export const auditService = {
   async getIdentityAudit(filters: {
     userId?: string;
     action?: string;
+    status?: string;
     from?: string;
     to?: string;
     page?: number;

@@ -158,6 +158,35 @@ export function useUsers() {
     }
   };
 
+  const block = async (id: string, reason?: string) => {
+    try {
+      await userService.blockUser(id, reason);
+      await load();
+    } catch (error) {
+      console.error('Error blocking user:', error);
+      throw error;
+    }
+  };
+
+  const unblock = async (id: string) => {
+    try {
+      await userService.unblockUser(id);
+      await load();
+    } catch (error) {
+      console.error('Error unblocking user:', error);
+      throw error;
+    }
+  };
+
+  const adminResetPassword = async (id: string) => {
+    try {
+      await userService.adminResetPassword(id);
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      throw error;
+    }
+  };
+
   return {
     users,
     roles,
@@ -173,6 +202,9 @@ export function useUsers() {
     deactivate,
     reactivate,
     resendPassword,
+    block,
+    unblock,
+    adminResetPassword,
     update,
     fetchUserProfile,
   };

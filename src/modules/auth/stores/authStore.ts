@@ -79,17 +79,58 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = '';
     try {
       const res = await authService.login(payload);
+      if (res.mfaRequired) {
+        return {
+          mfaRequired: true,
+          userId: res.userId,
+          mustChangePassword: res.mustChangePassword,
+        };
+      }
+
       localStorage.setItem('access_token', res.accessToken);
       localStorage.setItem('refresh_token', res.refreshToken);
       token.value = res.accessToken;
       user.value = parseJwt(res.accessToken) as UserClaims;
-            await loadPermissions();
+      await loadPermissions();
 
       if (res.mustChangePassword) {
         localStorage.setItem('must_change_password', 'true');
       } else {
         localStorage.removeItem('must_change_password');
       }
+      return res;
+    } catch (err: unknown) {
+      const errorObj = err as {
+        response?: { data?: { message?: string } };
+        message?: string;
+      };
+      error.value =
+        errorObj.response?.data?.message ||
+        errorObj.message ||
+        'Error occurred';
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  async function verifyMfa(payload: { email: string; mfaCode: string }) {
+    loading.value = true;
+    error.value = '';
+    try {
+      const res = await authService.verifyMfa(payload);
+      localStorage.setItem('access_token', res.accessToken);
+      localStorage.setItem('refresh_token', res.refreshToken);
+      token.value = res.accessToken;
+      user.value = parseJwt(res.accessToken) as UserClaims;
+      await loadPermissions();
+
+      if (res.mustChangePassword) {
+        localStorage.setItem('must_change_password', 'true');
+      } else {
+        localStorage.removeItem('must_change_password');
+      }
+      return res;
     } catch (err: unknown) {
       const errorObj = err as {
         response?: { data?: { message?: string } };
@@ -151,6 +192,7 @@ export const useAuthStore = defineStore('auth', () => {
     userRole,
     mustChangePassword,
     login,
+    verifyMfa,
     logout,
     changePassword,
     resendTemporaryPassword,

@@ -11,7 +11,51 @@
       {{ errorMessage }}
     </div>
 
-    <login-form v-if="!showChangePassword" @submit="handleLogin" />
+    <login-form v-if="!showChangePassword && !showMfa" @submit="handleLogin" />
+
+    <!-- MFA Modal -->
+    <fwb-modal v-if="showMfa" @close="handleCancelMfa">
+      <template #header>
+        <div class="flex items-center gap-2 text-lg font-bold dark:text-white">
+          <IconLucideShieldCheck class="w-6 h-6 text-blue-600" />
+          Verificación en Dos Pasos (MFA)
+        </div>
+      </template>
+      <template #body>
+        <form @submit.prevent="handleVerifyMfa" class="space-y-4">
+          <p class="text-sm text-gray-600 dark:text-gray-300">
+            Se ha enviado un código de verificación de 6 dígitos a su correo electrónico:
+            <strong class="text-blue-600 dark:text-blue-400 font-mono">{{ mfaEmail }}</strong>.
+          </p>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Código de Verificación (OTP)
+            </label>
+            <input
+              v-model="mfaCode"
+              type="text"
+              maxlength="6"
+              placeholder="000000"
+              class="w-full text-center tracking-widest text-2xl font-mono p-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500"
+              required
+              autofocus
+            />
+          </div>
+          <p class="text-xs text-gray-500 dark:text-gray-400">
+            El código vence en 5 minutos. Si no lo visualiza en su bandeja principal, revise su carpeta de spam.
+          </p>
+          <div class="flex justify-end space-x-3 pt-4">
+            <fwb-button color="alternative" @click="handleCancelMfa">
+              {{ t('auth.cancel') }}
+            </fwb-button>
+            <fwb-button type="submit" gradient="blue" :disabled="mfaLoading || mfaCode.length < 6">
+              <span v-if="mfaLoading">Verificando...</span>
+              <span v-else>Verificar e Ingresar</span>
+            </fwb-button>
+          </div>
+        </form>
+      </template>
+    </fwb-modal>
 
     <fwb-modal v-if="showChangePassword" @close="handleCancelChange">
       <template #header>
@@ -65,6 +109,7 @@ import { toTypedSchema } from '@vee-validate/zod';
 import { useAuthStore, type UserClaims, authService } from '@/modules/auth';
 import LoginForm from '@/components/auth/LoginForm.vue';
 import ThemeToggle from '@/components/ThemeToggle.vue';
+import IconLucideShieldCheck from '~icons/lucide/shield-check';
 import {
   loginSchema,
   changePasswordSchema,
@@ -81,6 +126,11 @@ const { login } = authStore;
 const { t } = useI18n();
 
 const showChangePassword = ref(false);
+const showMfa = ref(false);
+const mfaEmail = ref('');
+const mfaCode = ref('');
+const mfaLoading = ref(false);
+const pendingPassword = ref('');
 const errorMessage = ref('');
 
 onMounted(() => {
@@ -121,7 +171,14 @@ const handleLogin = async (payload: { email: string; password: string }) => {
   const values: LoginFormValues = parsed.data;
 
   try {
-    await login({ email: values.email, password: values.password });
+    const result = await login({ email: values.email, password: values.password });
+
+    if (result && 'mfaRequired' in result && result.mfaRequired) {
+      mfaEmail.value = values.email;
+      pendingPassword.value = values.password;
+      showMfa.value = true;
+      return;
+    }
 
     if (localStorage.getItem('must_change_password') === 'true') {
       showChangePassword.value = true;
@@ -152,6 +209,54 @@ const handleLogin = async (payload: { email: string; password: string }) => {
       errorMessage.value = '';
     }, 5000);
   }
+};
+
+const handleVerifyMfa = async () => {
+  if (!mfaCode.value || mfaCode.value.trim().length !== 6) {
+    errorMessage.value = 'Ingrese el código numérico de 6 dígitos.';
+    return;
+  }
+  mfaLoading.value = true;
+  errorMessage.value = '';
+  try {
+    await authStore.verifyMfa({
+      email: mfaEmail.value,
+      mfaCode: mfaCode.value.trim(),
+    });
+    showMfa.value = false;
+
+    if (localStorage.getItem('must_change_password') === 'true') {
+      showChangePassword.value = true;
+      setChangePasswordValues({
+        currentPassword: pendingPassword.value,
+        newPassword: '',
+        confirmPassword: '',
+      });
+    } else {
+      const redirectPath = (route.query.redirect as string) || '/dashboard';
+      if (redirectPath.startsWith('/')) {
+        router.push(redirectPath);
+      } else {
+        router.push('/dashboard');
+      }
+    }
+  } catch (error: unknown) {
+    console.error('MFA verify error:', error);
+    const appError = handleApiError(error);
+    errorMessage.value = appError.message || 'Código de verificación incorrecto o expirado.';
+    setTimeout(() => {
+      errorMessage.value = '';
+    }, 5000);
+  } finally {
+    mfaLoading.value = false;
+  }
+};
+
+const handleCancelMfa = () => {
+  showMfa.value = false;
+  mfaCode.value = '';
+  mfaEmail.value = '';
+  pendingPassword.value = '';
 };
 
 const onPasswordSubmit = onChangePasswordSubmit(async (values) => {

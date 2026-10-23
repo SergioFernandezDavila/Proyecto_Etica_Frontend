@@ -7,6 +7,11 @@ export const authService = {
     return response.data.data;
   },
 
+  async verifyMfa(payload: { email: string; mfaCode: string }) {
+    const response = await api.post('/auth/verify-mfa', payload);
+    return response.data.data;
+  },
+
   async changePassword(payload: {
     email: string;
     currentPassword: string;

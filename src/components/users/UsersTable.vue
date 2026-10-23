@@ -81,6 +81,15 @@
 
               <button
                 v-if="u.status !== 'DELETED'"
+                @click="$emit('adminResetPassword', u)"
+                class="p-2 text-gray-500 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
+                title="Restablecer Contraseña Administrativamente"
+              >
+                <IconLucideKey class="w-5 h-5" />
+              </button>
+
+              <button
+                v-if="u.status !== 'DELETED'"
                 @click="$emit('resend', u)"
                 class="p-2 text-gray-500 hover:text-green-600 dark:hover:text-green-400 transition-colors"
                 :title="t('users.tooltips.resendPassword')"
@@ -95,6 +104,24 @@
                 :title="t('users.tooltips.editUser')"
               >
                 <IconLucidePencil class="w-5 h-5" />
+              </button>
+
+              <button
+                v-if="u.status === 'LOCKED'"
+                @click="$emit('unblock', u)"
+                class="p-2 text-gray-500 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+                title="Desbloquear Usuario"
+              >
+                <IconLucideUnlock class="w-5 h-5" />
+              </button>
+
+              <button
+                v-if="u.status === 'ACTIVE'"
+                @click="$emit('block', u)"
+                class="p-2 text-gray-500 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                title="Bloquear Usuario"
+              >
+                <IconLucideLock class="w-5 h-5" />
               </button>
 
               <button
@@ -140,6 +167,9 @@ import IconLucideMail from '~icons/lucide/mail';
 import IconLucidePencil from '~icons/lucide/pencil';
 import IconLucideRefreshCw from '~icons/lucide/refresh-cw';
 import IconLucideBan from '~icons/lucide/ban';
+import IconLucideKey from '~icons/lucide/key';
+import IconLucideLock from '~icons/lucide/lock';
+import IconLucideUnlock from '~icons/lucide/unlock';
 
 const { t } = useI18n();
 
@@ -198,5 +228,8 @@ defineEmits<{
   resend: [user: UserRecord];
   reactivate: [user: UserRecord];
   viewDetails: [user: UserRecord];
+  block: [user: UserRecord];
+  unblock: [user: UserRecord];
+  adminResetPassword: [user: UserRecord];
 }>();
 </script>
