@@ -9,7 +9,11 @@
           {{ t('agentDashboard.subtitle') }}
         </p>
       </div>
-      <fwb-button @click="openCreateModal" gradient="blue">
+      <fwb-button
+        v-if="authStore.can('properties', 'create')"
+        @click="openCreateModal"
+        gradient="blue"
+      >
         <div class="flex items-center">
           <IconLucidePlus class="w-4 h-4 mr-2" />
           {{ t('agentDashboard.registerNew') }}
@@ -130,6 +134,7 @@
       >
         <template #actions-top="{ property, statusHelpers }">
           <button
+            v-if="authStore.can('properties', 'update')"
             @click="openEditModal(property)"
             :disabled="statusHelpers.isSold.value"
             class="bg-blue-600 text-white rounded-full p-1.5 hover:bg-blue-700 transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
@@ -141,6 +146,7 @@
           <!-- Retirement button (FROM INCOMING) -->
           <button
             v-if="
+              authStore.can('properties', 'delete') &&
               property.status !== 'RETIRADO' &&
               property.status !== 'VENDIDO' &&
               property.status !== 'ELIMINADO'

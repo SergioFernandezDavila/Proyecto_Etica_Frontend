@@ -4,6 +4,13 @@
       <h1 class="text-2xl font-bold dark:text-white">
         {{ t('users.view.title') }}
       </h1>
+      <router-link
+        to="/dashboard/admin/matrix"
+        class="inline-flex items-center gap-2 px-3.5 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-colors"
+      >
+        <IconLucideKey class="w-4 h-4" />
+        Matriz de Roles y Permisos
+      </router-link>
     </div>
 
     <div class="app-card p-4">
@@ -360,6 +367,7 @@
 <script setup lang="ts">
 import IconLucideSearch from '~icons/lucide/search';
 import IconLucideTrash from '~icons/lucide/trash';
+import IconLucideKey from '~icons/lucide/key';
 import { onMounted, ref, computed, watch } from 'vue';
 import { FwbModal, FwbButton, FwbAlert } from 'flowbite-vue';
 import { useUsers } from '@/composables/useUsers';

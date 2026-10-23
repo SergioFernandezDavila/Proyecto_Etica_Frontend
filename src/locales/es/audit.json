@@ -34,7 +34,8 @@
     "tabs": {
       "identity": "Documentos CI/NIT",
       "properties": "Inmuebles",
-      "profiles": "Perfiles"
+      "profiles": "Perfiles",
+      "accessControl": "Roles y Permisos"
     },
     "filters": {
       "user": "Usuario Responsable",

@@ -32,6 +32,19 @@ export interface ProfileAuditLog extends BaseAuditLog {
   changedBy?: string;
 }
 
+export interface AccessControlAuditLog {
+  id: string;
+  action: string;
+  roleId: string;
+  roleCode: string;
+  performedBy: string;
+  performedByEmail?: string;
+  performedByName?: string;
+  timestamp: string;
+  details?: string;
+  ipAddress?: string;
+}
+
 export const auditService = {
   /**
    * Identity Audit Logs (Formerly /audit/logs)
@@ -44,12 +57,9 @@ export const auditService = {
     page?: number;
     pageSize?: number;
   }): Promise<ApiResponse<IdentityAuditLog[]>> {
-    const response = await api.get<ApiResponse<IdentityAuditLog[]>>(
-      '/users/audit',
-      {
-        params: filters,
-      }
-    );
+    const response = await api.get<ApiResponse<IdentityAuditLog[]>>('/users/audit', {
+      params: filters,
+    });
     return response.data;
   },
 
@@ -65,12 +75,9 @@ export const auditService = {
     page?: number;
     pageSize?: number;
   }): Promise<ApiResponse<PropertyAuditLog[]>> {
-    const response = await api.get<ApiResponse<PropertyAuditLog[]>>(
-      '/properties/audit',
-      {
-        params: filters,
-      }
-    );
+    const response = await api.get<ApiResponse<PropertyAuditLog[]>>('/properties/audit', {
+      params: filters,
+    });
     return response.data;
   },
 
@@ -86,12 +93,27 @@ export const auditService = {
     page?: number;
     pageSize?: number;
   }): Promise<ApiResponse<ProfileAuditLog[]>> {
-    const response = await api.get<ApiResponse<ProfileAuditLog[]>>(
-      '/persons/audit',
-      {
-        params: filters,
-      }
-    );
+    const response = await api.get<ApiResponse<ProfileAuditLog[]>>('/persons/audit', {
+      params: filters,
+    });
+    return response.data;
+  },
+
+  /**
+   * Access Control Audit Logs (/roles/audit)
+   */
+  async getAccessControlAudit(filters: {
+    roleId?: string;
+    roleCode?: string;
+    action?: string;
+    from?: string;
+    to?: string;
+    page?: number;
+    pageSize?: number;
+  }): Promise<ApiResponse<AccessControlAuditLog[]>> {
+    const response = await api.get<ApiResponse<AccessControlAuditLog[]>>('/roles/audit', {
+      params: filters,
+    });
     return response.data;
   },
 };

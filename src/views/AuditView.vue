@@ -23,19 +23,31 @@
         <fwb-tab name="profiles" :title="t('audit.tabs.profiles')">
           <ProfileAuditTab />
         </fwb-tab>
+        <fwb-tab name="access_control" :title="t('audit.tabs.accessControl')">
+          <AccessControlAuditTab />
+        </fwb-tab>
       </fwb-tabs>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRoute } from 'vue-router';
 import { FwbTabs, FwbTab, FwbBadge } from 'flowbite-vue';
 import IdentityAuditTab from '@/components/audit/IdentityAuditTab.vue';
 import PropertyAuditTab from '@/components/audit/PropertyAuditTab.vue';
 import ProfileAuditTab from '@/components/audit/ProfileAuditTab.vue';
+import AccessControlAuditTab from '@/components/audit/AccessControlAuditTab.vue';
 
 const { t } = useI18n();
+const route = useRoute();
 const activeTab = ref('identity');
+
+onMounted(() => {
+  if (route.query.tab && typeof route.query.tab === 'string') {
+    activeTab.value = route.query.tab;
+  }
+});
 </script>
