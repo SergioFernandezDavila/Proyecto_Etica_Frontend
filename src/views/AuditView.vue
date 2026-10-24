@@ -14,13 +14,11 @@
 
     <div class="app-card">
       <fwb-tabs v-model="activeTab" variant="underline" class="p-2">
-        <fwb-tab name="identity" :title="t('audit.tabs.identity')">
+        <fwb-tab name="security" title="Seguridad">
           <IdentityAuditTab />
         </fwb-tab>
-        <fwb-tab name="properties" :title="t('audit.tabs.properties')">
+        <fwb-tab name="application" title="Aplicación">
           <PropertyAuditTab />
-        </fwb-tab>
-        <fwb-tab name="profiles" :title="t('audit.tabs.profiles')">
           <ProfileAuditTab />
         </fwb-tab>
       </fwb-tabs>
@@ -37,5 +35,5 @@ import PropertyAuditTab from '@/components/audit/PropertyAuditTab.vue';
 import ProfileAuditTab from '@/components/audit/ProfileAuditTab.vue';
 
 const { t } = useI18n();
-const activeTab = ref('identity');
+const activeTab = ref('security');
 </script>

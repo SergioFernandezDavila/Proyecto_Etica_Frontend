@@ -29,8 +29,8 @@
     }
   },
   "audit": {
-    "title": "Centro de Auditoría",
-    "subtitle": "Supervisión de cambios en documentos, inmuebles y perfiles de usuario.",
+    "title": "Logs de Auditoria",
+    "subtitle": "Módulo y control de logs de seguridad y del sistema.",
     "tabs": {
       "identity": "Documentos CI/NIT",
       "properties": "Inmuebles",

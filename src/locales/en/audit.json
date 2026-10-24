@@ -29,8 +29,8 @@
     }
   },
   "audit": {
-    "title": "Audit Center",
-    "subtitle": "Supervision of changes in documents, properties, and user profiles.",
+    "title": "Audit Logs",
+    "subtitle": "Module and control of security and system logs.",
     "tabs": {
       "identity": "ID Documents",
       "properties": "Properties",
