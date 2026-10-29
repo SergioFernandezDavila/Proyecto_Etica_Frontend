@@ -39,13 +39,7 @@
         </p>
         <FwbButton
           v-if="showUseSuggestion"
-          @click="
-            $emit(
-              'use-suggestion',
-              conflict.suggestedStartTime,
-              conflict.suggestedEndTime
-            )
-          "
+          @click="$emit('use-suggestion', conflict.suggestedStartTime, conflict.suggestedEndTime)"
           size="xs"
           color="yellow"
           class="mt-2"
@@ -58,36 +52,31 @@
 </template>
 
 <script setup lang="ts">
-import { useI18n } from 'vue-i18n';
-import { getLocaleString } from '@/locales/i18n';
-import type { ConflictResponse } from '@/types/visitCalendar';
-import {
-  FwbAlert,
-  FwbListGroup,
-  FwbListGroupItem,
-  FwbButton,
-} from 'flowbite-vue';
-import IconLucideAlertTriangle from '~icons/lucide/alert-triangle';
-import IconLucideCalendar from '~icons/lucide/calendar';
+  import { useI18n } from 'vue-i18n';
+  import { getLocaleString } from '@/locales/i18n';
+  import type { ConflictResponse } from '@/types/visitCalendar';
+  import { FwbAlert, FwbListGroup, FwbListGroupItem, FwbButton } from 'flowbite-vue';
+  import IconLucideAlertTriangle from '~icons/lucide/alert-triangle';
+  import IconLucideCalendar from '~icons/lucide/calendar';
 
-const { t } = useI18n();
+  const { t } = useI18n();
 
-defineProps<{
-  conflict: ConflictResponse;
-  showUseSuggestion?: boolean;
-}>();
+  defineProps<{
+    conflict: ConflictResponse;
+    showUseSuggestion?: boolean;
+  }>();
 
-defineEmits<{
-  (e: 'use-suggestion', start?: string, end?: string): void;
-}>();
+  defineEmits<{
+    (e: 'use-suggestion', start?: string, end?: string): void;
+  }>();
 
-function formatTime(iso: string): string {
-  return new Date(iso).toLocaleString(getLocaleString(), {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
+  function formatTime(iso: string): string {
+    return new Date(iso).toLocaleString(getLocaleString(), {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
 </script>

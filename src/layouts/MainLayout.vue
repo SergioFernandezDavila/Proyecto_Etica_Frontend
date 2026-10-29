@@ -167,6 +167,12 @@
             :label="t('nav.operations')"
             :icon="IconLucideFileText"
           />
+
+          <NavLink
+            to="/dashboard/settings"
+            :label="t('nav.settings', 'Preferencias y Seguridad')"
+            :icon="IconLucideSettings"
+          />
         </ul>
       </nav>
 
@@ -188,13 +194,22 @@
             </span>
           </div>
         </div>
-        <button
-          @click="handleLogout"
-          class="p-2 rounded-xl text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all duration-200 flex-shrink-0 cursor-pointer"
-          :title="t('nav.logout')"
-        >
-          <IconLucideLogOut class="w-4.5 h-4.5" />
-        </button>
+        <div class="flex items-center gap-1">
+          <router-link
+            to="/dashboard/settings"
+            class="p-2 rounded-xl text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:text-gray-400 dark:hover:text-blue-400 dark:hover:bg-blue-950/20 transition-all duration-200 flex-shrink-0 cursor-pointer"
+            :title="t('nav.settings', 'Preferencias')"
+          >
+            <IconLucideSettings class="w-4.5 h-4.5" />
+          </router-link>
+          <button
+            @click="handleLogout"
+            class="p-2 rounded-xl text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all duration-200 flex-shrink-0 cursor-pointer"
+            :title="t('nav.logout')"
+          >
+            <IconLucideLogOut class="w-4.5 h-4.5" />
+          </button>
+        </div>
       </div>
     </aside>
 
@@ -255,6 +270,7 @@ import IconLucideUsers from '~icons/lucide/users';
 import IconLucideKey from '~icons/lucide/key';
 import IconLucideBuilding2 from '~icons/lucide/building-2';
 import IconLucideShieldCheck from '~icons/lucide/shield-check';
+import IconLucideSettings from '~icons/lucide/settings';
 import IconLucideLayoutDashboard from '~icons/lucide/layout-dashboard';
 import IconLucideUserCircle from '~icons/lucide/user-circle';
 import IconLucideHome from '~icons/lucide/home';

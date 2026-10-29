@@ -204,6 +204,12 @@ const routes = [
         component: ContractVersionsView,
         meta: { roles: ['ADMIN', 'AGENT', 'OWNER', 'CLIENT'] },
       },
+      {
+        path: 'settings',
+        name: 'Settings',
+        component: () => import('@/views/SettingsView.vue'),
+        meta: { requiresAuth: true },
+      },
     ],
   },
 ];

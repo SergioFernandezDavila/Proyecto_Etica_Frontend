@@ -23,6 +23,7 @@ export type User = {
   maxRooms?: number;
   maxPrice?: number;
   preferredPropertyType?: string;
+  twoFactorEnabled?: boolean;
 };
 
 export type UserFormPayload = {
@@ -47,4 +48,5 @@ export type UserFormPayload = {
 export type LoginPayload = {
   email: string;
   password: string;
+  recaptchaToken: string;
 };
